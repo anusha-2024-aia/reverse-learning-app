@@ -29,7 +29,7 @@ const SkeletonCard = () => (
     </div>
 );
 
-const FeedbackCard = ({ evaluation, isLoading, onRetry, onNewTopic }) => {
+const FeedbackCard = ({ evaluation, isLoading, onRetry, onClaimMastery }) => {
     if (isLoading) return <SkeletonCard />;
     if (!evaluation) return null;
 
@@ -174,22 +174,27 @@ const FeedbackCard = ({ evaluation, isLoading, onRetry, onNewTopic }) => {
 
             {/* 6. Action Footer (Actionable Loop) */}
             <div className="flex flex-col sm:flex-row justify-center items-center gap-6 mt-12 pt-10 border-t border-slate-200">
-                <button
-                    onClick={onRetry}
-                    className="w-full sm:w-auto bg-slate-900 text-white px-8 py-4 rounded-xl hover:bg-slate-800 transition-all font-bold shadow-2xl shadow-slate-900/30 flex items-center justify-center gap-3 group hover:-translate-y-1 active:translate-y-0"
-                >
-                    <RotateCcw className="w-6 h-6 group-hover:rotate-180 transition-transform duration-1000" />
-                    Try Again Incorporating Feedback
-                </button>
-                <button
-                    onClick={onNewTopic}
-                    className="w-full sm:w-auto text-slate-500 hover:text-slate-900 px-8 py-4 rounded-xl hover:bg-slate-200 transition-all font-bold flex items-center justify-center gap-2 tracking-wide"
-                >
-                    Choose a New Topic
-                </button>
+                {score < 8 ? (
+                    <button
+                        onClick={onRetry}
+                        className="w-full sm:w-auto bg-slate-900 text-white px-8 py-4 rounded-xl hover:bg-slate-800 transition-all font-bold shadow-2xl shadow-slate-900/30 flex items-center justify-center gap-3 group hover:-translate-y-1 active:translate-y-0"
+                    >
+                        <RotateCcw className="w-6 h-6 group-hover:rotate-180 transition-transform duration-1000" />
+                        Try Again Incorporating Feedback
+                    </button>
+                ) : (
+                    <button
+                        onClick={onClaimMastery}
+                        className="w-full sm:w-auto bg-emerald-600 text-white px-10 py-5 rounded-xl hover:bg-emerald-500 transition-all font-black shadow-[0_20px_40px_rgba(16,185,129,0.3)] flex items-center justify-center gap-3 group animate-bounce hover:animate-none active:scale-95"
+                    >
+                        <Sparkles className="w-6 h-6" />
+                        CLAIM YOUR MASTERY
+                    </button>
+                )}
             </div>
         </div>
     );
 };
+
 
 export default FeedbackCard;
