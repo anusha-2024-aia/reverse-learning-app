@@ -1,8 +1,16 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import study_routes
+from app.routes import study_routes, curriculum_routes, topics_routes, insights_routes, achievements_routes
+from app.seeds import seed_data
+from contextlib import asynccontextmanager
 
-app = FastAPI(title="Reverse Learning API")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Seed data on startup
+    seed_data()
+    yield
+
+app = FastAPI(title="Reverse Learning API", lifespan=lifespan)
 
 # Configure CORS
 origins = [
@@ -22,6 +30,10 @@ app.add_middleware(
 
 # Include Routers
 app.include_router(study_routes.router, prefix="/api", tags=["Study"])
+app.include_router(curriculum_routes.router, prefix="/api", tags=["Curriculum"])
+app.include_router(topics_routes.router, prefix="/api", tags=["Topics"])
+app.include_router(insights_routes.router, prefix="/api/insights", tags=["Insights"])
+app.include_router(achievements_routes.router, prefix="/api/achievements", tags=["Achievements"])
 
 @app.get("/")
 async def root():
