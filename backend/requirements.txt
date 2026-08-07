@@ -4,3 +4,8 @@ python-dotenv
 google-generativeai
 pydantic
 sqlalchemy
+passlib[bcrypt]
+python-jose[cryptography]
+python-multipart
+pymupdf
+python-docx

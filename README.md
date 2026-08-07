@@ -1,79 +1,76 @@
-# Reverse Learning App
+# Reverse Learning Studio: AI-Powered "Feynman Technique" Application
 
-A full-stack application featuring a React frontend built with Vite and a Python backend.
+## 📌 Problem Statement
+Traditional passive learning (reading, watching lectures) often leads to the illusion of competence, where students recognize material but cannot actively apply or explain it. When preparing for technical interviews, exams, or complex real-world engineering tasks, the inability to articulate concepts clearly becomes a massive bottleneck. Learners lack immediate, objective, and personalized feedback on their true comprehension.
 
-## Project Structure
+## 🎯 End User
+- **Software Engineering Students & Bootcamp Grads**: Preparing for rigorous technical interviews and needing to practice explaining algorithms and system designs.
+- **Self-Taught Developers**: Looking to solidify foundational knowledge across various stacks (Python, Full-Stack, AI/ML, SQL).
+- **Professionals & Lifelong Learners**: Anyone wanting to test their true grasp of a subject using the Feynman Technique, improving both technical depth and communication skills.
 
-```
-reverse-learning-app/
-├── backend/            # Python backend application
-│   ├── app/            # Application source code
-│   ├── requirements.txt # Python dependencies
-│   └── .env            # Environment variables Configuration
-├── frontend/           # React + Vite frontend application
-│   ├── src/            # Frontend source code (React components like StudyRoom)
-│   ├── package.json    # Node dependencies and scripts
-│   └── vite.config.js  # Vite configuration
-└── README.md           # This file
-```
+## 💡 Solution
+The **Reverse Learning Studio** turns the traditional learning paradigm upside down. Instead of being spoon-fed information, users must *teach* the AI. Leveraging the **Feynman Technique** (learning by teaching), the platform challenges users to explain concepts in their own words—via text or voice. The system's AI evaluates these explanations in real-time for technical accuracy, grammar, and fluency, acting as a personal mentor that instantly highlights knowledge gaps and guides users to mastery.
 
-## Working Flow
+## ✨ Features
+*   **Dynamic Syllabus Engine:** An extensive, automatically generated curriculum ranging from "Basic to Pro" levels across multiple disciplines (Python, Java, AI, SQL, Full Stack, Interview Prep). 
+*   **The "Reverse Learning" Room:** An interactive studio where users submit explanations via Text-to-Text, Voice-to-Text, or Voice-to-Voice.
+*   **Multi-Dimensional AI Evaluation:** Advanced LLM integration that grades submissions based on Technical Logic, General Knowledge analogies, or English Fluency. It provides a score out of 10, grammar corrections, vocabulary suggestions, and an "Advanced Version" to learn from.
+*   **Gamification & Engagement:** A persistent local database tracks user progress, study streaks, and perfect scores, rewarding users with achievements to keep them motivated.
+*   **AI Mock Interview Simulator:** A dedicated interview module that evaluates not just technical accuracy, but also "Soft Skills" and "Confidence", visualized using interactive Radar charts.
+*   **Document Parsing:** Users can upload `.pdf` or `.docx` study notes, which are parsed and fed into the AI as context to generate personalized study plans and challenge questions.
 
-The application is an AI-powered learning co-pilot that leverages the **Feynman Technique** (learning by explaining) to help engineers master concepts. 
+## 🛠 Tech Stack
+**Frontend:**
+*   **React (Vite):** Blazing fast modern frontend framework.
+*   **Tailwind CSS:** For premium, responsive, modern UI components.
+*   **Lucide React:** Beautiful, consistent iconography.
+*   **Recharts:** Interactive charting for visualizing interview performance metrics.
+*   **React Router:** For seamless single-page application navigation.
 
-1. **Welcome Screen:** The user starts their learning journey.
-2. **Topic Selection (Syllabus Roadmap):** The user selects a specific target concept/node from an interactive, isometric syllabus map (e.g., Core Foundations, System Architecture).
-3. **Explanation Input:** The user provides an explanation of the topic as if they were teaching it. They can choose from different "Learning Contexts" (General Knowledge, Technical & DSA, or English Fluency) to tailor the AI's grading criteria.
-4. **AI Evaluation & Feedback:** The explanation is sent to the backend, where it is analyzed by an AI (Gemini). The UI displays the AI's "Cognition Phase" real-time thinking, followed by a detailed, structured feedback card with scores and constructive critiques.
-5. **Mastery & Progression:** Once the user successfully demonstrates understanding, they achieve "Mastery" of the topic, which formally unlocks the next advanced phases in their curriculum.
+**Backend:**
+*   **Python & FastAPI:** High-performance async web framework for handling API routes and AI orchestration.
+*   **SQLite (SQLAlchemy):** Relational database with ORM for robust state, user, and curriculum management.
+*   **Google Gemini AI API:** The core LLM engine powering evaluations, JSON-structured feedback, and dynamic syllabus generation.
+*   **PyMuPDF (`fitz`) & `python-docx`:** For robust document text extraction.
+*   **JWT & OAuth2 (Architecture Built-in):** Configured for secure, stateless authentication and session management.
 
-## Getting Started
+## 🚀 How to Run (Getting Started)
 
 ### Prerequisites
+*   **Node.js** (v16+)
+*   **Python** (3.9+)
 
-* Node.js (for the frontend)
-* Python 3.x (for the backend)
+### 1. Backend Setup
+Navigate to the backend directory and set up the Python environment:
+```bash
+cd backend
+python -m venv venv
 
-### Backend Setup
+# Activate virtual environment
+# On Windows:
+.\venv\Scripts\activate
+# On Mac/Linux:
+source venv/bin/activate
 
-1. Navigate to the backend directory:
-   ```bash
-   cd backend
-   ```
-2. Create and activate a virtual environment (if you haven't already):
-   ```bash
-   python -m venv venv
-   # On Windows:
-   .\venv\Scripts\activate
-   # On macOS/Linux:
-   source venv/bin/activate
-   ```
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-4. Start the backend server (typically using uvicorn or flask run, depending on your framework):
-   ```bash
-   # Make sure to check backend/app for the specific start script
-   # e.g., uvicorn app.main:app --reload
-   ```
+# Install dependencies
+pip install -r requirements.txt
+```
 
-### Frontend Setup
+Start the FastAPI server:
+```bash
+python -m uvicorn app.main:app --reload
+```
+*The backend will run on `http://localhost:8000`.*
 
-1. Navigate to the frontend directory:
-   ```bash
-   cd frontend
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Start the development server:
-   ```bash
-   npm run dev
-   ```
+### 2. Frontend Setup
+Open a new terminal window, navigate to the frontend directory:
+```bash
+cd frontend
 
-## Development
+# Install dependencies
+npm install
 
-* The frontend is running on Vite, which usually defaults to `http://localhost:5173`.
-* Ensure that the backend server is running and accessible to the frontend application (check `.env` files for configuration).
+# Start the development server
+npm run dev
+```
+*The frontend will be accessible at `http://localhost:5173`. Open this in your browser to start your Reverse Learning journey!*

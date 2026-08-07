@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, BookOpen } from 'lucide-react';
+import api from '../api/axios';
 
 const StudyHistory = () => {
     const [curricula, setCurricula] = useState([]);
@@ -8,21 +9,29 @@ const StudyHistory = () => {
     const [history, setHistory] = useState([]); // Would be fetched from API
 
     useEffect(() => {
-        fetch('http://localhost:8000/api/curricula')
-            .then(res => res.json())
-            .then(data => setCurricula(data.curricula || []))
+        api.get('/curricula')
+            .then(res => setCurricula(res.data.curricula || []))
             .catch(err => console.error(err));
         
-        // Mock history data since endpoint isn't fully required by prompt for this step, but assuming it exists
-        setHistory([
-            { id: 1, topic_name: 'Variables & Data Types', curriculum_name: 'Python Fundamentals', score: 8, learning_mode: 'technical', date: new Date().toISOString() },
-            { id: 2, topic_name: 'Lists & Tuples', curriculum_name: 'Python Fundamentals', score: 7, learning_mode: 'general', date: new Date().toISOString() }
-        ]);
+        api.get('/sessions/evaluations/mine')
+            .then(res => {
+                const fetchedHistory = res.data.evaluations || res.data || [];
+                // Sort by most recent (created_at or date)
+                const sortedHistory = fetchedHistory.sort((a, b) => {
+                    const dateA = new Date(a.created_at || a.date);
+                    const dateB = new Date(b.created_at || b.date);
+                    return dateB - dateA;
+                });
+                setHistory(sortedHistory);
+            })
+            .catch(err => console.error('Failed to fetch study history:', err));
     }, []);
 
     const filteredHistory = history.filter(h => {
-        if (selectedCurriculum !== 'all' && h.curriculum_name !== selectedCurriculum) return false;
-        if (searchTopic && !h.topic_name.toLowerCase().includes(searchTopic.toLowerCase())) return false;
+        const curriculumName = h.curriculum_name || (h.curriculum && h.curriculum.name) || 'Unknown';
+        const topicName = h.topic_name || (h.topic && h.topic.name) || 'Unknown';
+        if (selectedCurriculum !== 'all' && curriculumName !== selectedCurriculum) return false;
+        if (searchTopic && !topicName.toLowerCase().includes(searchTopic.toLowerCase())) return false;
         return true;
     });
 
@@ -71,14 +80,14 @@ const StudyHistory = () => {
                     <tbody>
                         {filteredHistory.length > 0 ? filteredHistory.map(h => (
                             <tr key={h.id} className="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors">
-                                <td className="px-6 py-4 font-medium text-white">{h.topic_name}</td>
-                                <td className="px-6 py-4 text-slate-400">{h.curriculum_name}</td>
+                                <td className="px-6 py-4 font-medium text-white">{h.topic_name || (h.topic && h.topic.name) || 'Unknown Topic'}</td>
+                                <td className="px-6 py-4 text-slate-400">{h.curriculum_name || (h.curriculum && h.curriculum.name) || 'Unknown'}</td>
                                 <td className="px-6 py-4">
                                     <span className="px-2 py-1 bg-slate-700 rounded text-xs font-medium text-slate-300 uppercase">
-                                        {h.learning_mode}
+                                        {h.learning_mode || 'general'}
                                     </span>
                                 </td>
-                                <td className="px-6 py-4 font-bold text-indigo-400">{h.score}/10</td>
+                                <td className="px-6 py-4 font-bold text-indigo-400">{h.score || h.ai_score || 0}/10</td>
                                 <td className="px-6 py-4 text-right">
                                     <button className="text-indigo-400 hover:text-indigo-300 text-sm font-medium transition-colors">
                                         View All Feedback

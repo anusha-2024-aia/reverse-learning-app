@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { BookOpen, Home, Layers, History, BarChart2, Award } from 'lucide-react';
+import { BookOpen, Home, Layers, History, BarChart2, Award, Mic } from 'lucide-react';
 
 const Navbar = () => {
     return (
@@ -16,6 +16,9 @@ const Navbar = () => {
                     </NavLink>
                     <NavLink to="/study" className={({ isActive }) => `flex items-center gap-2 text-sm font-medium transition-colors ${isActive ? 'text-indigo-400' : 'text-slate-400 hover:text-slate-200'}`}>
                         <Layers className="w-4 h-4" /> Study Room
+                    </NavLink>
+                    <NavLink to="/interview" className={({ isActive }) => `flex items-center gap-2 text-sm font-medium transition-colors ${isActive ? 'text-indigo-400' : 'text-slate-400 hover:text-slate-200'}`}>
+                        <Mic className="w-4 h-4" /> Interview
                     </NavLink>
                     <NavLink to="/syllabi" className={({ isActive }) => `flex items-center gap-2 text-sm font-medium transition-colors ${isActive ? 'text-indigo-400' : 'text-slate-400 hover:text-slate-200'}`}>
                         <BookOpen className="w-4 h-4" /> Syllabi

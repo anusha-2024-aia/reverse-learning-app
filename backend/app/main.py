@@ -1,13 +1,107 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import study_routes, curriculum_routes, topics_routes, insights_routes, achievements_routes
-from app.seeds import seed_data
+from sqlalchemy.orm import Session
+from app.routes import study_routes, curriculum_routes, topics_routes, insights_routes, achievements_routes, sessions_routes, evaluations_routes, auth_routes, interview_routes
 from contextlib import asynccontextmanager
+from app.database import engine, get_db, SessionLocal
+from app import models
+
+def seed_topics():
+    db = SessionLocal()
+    try:
+        curriculums_data = [
+            # Programming & CS
+            {"name": "Python Mastery", "desc": "Learn Python from scratch to pro", "diff": "beginner", "topics": [
+                "Introduction to Python & Setup", "Variables, Data Types & Operators", "Control Flow (If, For, While)", 
+                "Functions & Scope", "Lists, Tuples & Sets", "Dictionaries & Data Modeling", "File Handling & I/O", 
+                "Error Handling & Exceptions", "Object-Oriented Programming (OOP)", "Inheritance & Polymorphism", 
+                "Modules & Packages", "Decorators & Generators", "Context Managers", "Multithreading & Multiprocessing", 
+                "Pro Level: Asynchronous Programming (Asyncio)", "Pro Level: C-Extensions & Memory Management"
+            ]},
+            {"name": "Java Fundamentals", "desc": "Object-oriented programming in Java", "diff": "intermediate", "topics": [
+                "Introduction to Java & JVM", "Variables, Types & Operators", "Control Structures", "Arrays & Strings", 
+                "Classes, Objects & Constructors", "Inheritance & Interfaces", "Polymorphism & Abstraction", 
+                "Exception Handling", "Java Collections Framework", "Generics", "File I/O & Serialization", 
+                "Multithreading & Concurrency", "Java 8 Streams & Lambdas", "JDBC & Database Connectivity", 
+                "Pro Level: Spring Boot Framework Basics", "Pro Level: Advanced JVM Tuning"
+            ]},
+            {"name": "SQL Mastery", "desc": "From basic queries to advanced database tuning", "diff": "beginner", "topics": [
+                "Introduction to Relational Databases", "Basic SELECT Queries", "Filtering Data (WHERE, LIKE, IN)", 
+                "Sorting & Paging (ORDER BY, LIMIT)", "Aggregate Functions (COUNT, SUM, AVG)", "GROUP BY & HAVING", 
+                "INNER JOIN & LEFT JOIN", "RIGHT & FULL OUTER JOINS", "Subqueries & Nested Selects", 
+                "Common Table Expressions (CTEs)", "Data Modification (INSERT, UPDATE, DELETE)", 
+                "DDL (CREATE, ALTER, DROP Tables)", "Views & Stored Procedures", "Database Normalization", 
+                "Pro Level: Window Functions (OVER, PARTITION)", "Pro Level: Query Optimization & Indexing"
+            ]},
+            {"name": "Full Stack Web Development", "desc": "End-to-end web app creation", "diff": "intermediate", "topics": [
+                "Introduction to the Web (HTTP, DNS)", "HTML5 Semantic Structure", "CSS3 Basics & Flexbox/Grid", 
+                "Responsive Design & Media Queries", "JavaScript Fundamentals", "DOM Manipulation & Events", 
+                "Async JS (Promises & Fetch API)", "React.js: Components & State", "React.js: Hooks & Context", 
+                "Node.js & Express.js Basics", "RESTful API Design", "MongoDB & Mongoose (NoSQL)", 
+                "Authentication (JWT & Cookies)", "WebSockets for Real-time Apps", 
+                "Pro Level: System Design & Microservices", "Pro Level: CI/CD & Docker Deployment"
+            ]},
+            {"name": "Artificial Intelligence", "desc": "Core concepts of AI", "diff": "advanced", "topics": [
+                "Introduction to AI & History", "Problem Solving as Search", "Uninformed Search (BFS, DFS)", 
+                "Informed Search (A* Algorithm)", "Adversarial Search (Minimax)", "Knowledge Representation & Logic", 
+                "Probabilistic Reasoning & Bayes Nets", "Markov Decision Processes (MDP)", "Reinforcement Learning Basics", 
+                "Intro to Artificial Neural Networks", "Natural Language Processing Basics", "Computer Vision Basics", 
+                "Pro Level: Advanced Deep Learning Architectures", "Pro Level: AI Safety & Alignment"
+            ]},
+            {"name": "Machine Learning Fundamentals", "desc": "Theory and practice of ML models", "diff": "intermediate", "topics": [
+                "Introduction to Machine Learning", "Data Preprocessing & Feature Engineering", "Linear Regression", 
+                "Logistic Regression", "Decision Trees & Random Forests", "Support Vector Machines (SVM)", 
+                "K-Nearest Neighbors (KNN)", "Model Evaluation (Precision, Recall, ROC)", "Cross-Validation & Grid Search", 
+                "Unsupervised Learning: K-Means Clustering", "Unsupervised Learning: PCA (Dimensionality Reduction)", 
+                "Gradient Boosting (XGBoost, LightGBM)", "Pro Level: Building MLOps Pipelines", "Pro Level: Advanced Ensemble Methods"
+            ]},
+            
+            # Languages & Soft Skills
+            {"name": "English Vocabulary & Expression", "desc": "Enhance your professional communication", "diff": "intermediate", "topics": [
+                "Introduction to Professional English", "Common Business Idioms & Phrases", "Descriptive Adjectives for Impact", 
+                "Action Verbs for Resumes & Interviews", "Nuanced Phrasal Verbs", "Industry-Specific Jargon (Tech/Business)", 
+                "Polite Disagreement & Diplomacy", "Structuring Presentations", "Writing Professional Emails", 
+                "Pro Level: Persuasive & Academic Writing", "Pro Level: Advanced Public Speaking Tropes"
+            ]},
+            {"name": "English Grammar & Syntax", "desc": "Master sentence structures", "diff": "beginner", "topics": [
+                "Introduction to Parts of Speech", "Simple Tenses (Past, Present, Future)", "Continuous & Perfect Tenses", 
+                "Subject-Verb Agreement", "Articles & Prepositions", "Active vs. Passive Voice", "Direct vs. Indirect Speech", 
+                "Conditional Sentences (If clauses)", "Relative Clauses", "Compound & Complex Sentences", 
+                "Pro Level: Advanced Syntactical Structures", "Pro Level: Editing & Proofreading Techniques"
+            ]},
+            {"name": "Interview Preparation", "desc": "Mock interview strategies", "diff": "beginner", "topics": [
+                "Introduction to the Interview Process", "Crafting Your Elevator Pitch", "The STAR Method for Behavioral Questions", 
+                "Answering 'Tell Me About Yourself'", "Handling Questions About Weaknesses", "Discussing Past Failures & Conflict", 
+                "Technical Communication for Engineers", "Whiteboard Interview Strategies", "Questions to Ask the Interviewer", 
+                "Following Up Post-Interview", "Pro Level: Salary Negotiation Tactics", "Pro Level: Handling Executive/Panel Interviews"
+            ]}
+        ]
+
+        for cur_data in curriculums_data:
+            cur = db.query(models.Curriculum).filter(models.Curriculum.name == cur_data["name"]).first()
+            if not cur:
+                cur = models.Curriculum(name=cur_data["name"], description=cur_data["desc"], difficulty=cur_data["diff"])
+                db.add(cur)
+                db.commit()
+                db.refresh(cur)
+                
+            existing_topics_count = db.query(models.Topic).filter(models.Topic.curriculum_id == cur.id).count()
+            if existing_topics_count != len(cur_data["topics"]):
+                db.query(models.Topic).filter(models.Topic.curriculum_id == cur.id).delete()
+                topics_to_add = []
+                for idx, topic_name in enumerate(cur_data["topics"]):
+                    topics_to_add.append(
+                        models.Topic(name=topic_name, category="Engineering", curriculum_id=cur.id, order_in_curriculum=idx+1)
+                    )
+                db.add_all(topics_to_add)
+                db.commit()
+    finally:
+        db.close()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Seed data on startup
-    seed_data()
+    models.Base.metadata.create_all(bind=engine)
+    seed_topics()
     yield
 
 app = FastAPI(title="Reverse Learning API", lifespan=lifespan)
@@ -29,11 +123,15 @@ app.add_middleware(
 )
 
 # Include Routers
+app.include_router(auth_routes.router, prefix="/api")
 app.include_router(study_routes.router, prefix="/api", tags=["Study"])
 app.include_router(curriculum_routes.router, prefix="/api", tags=["Curriculum"])
 app.include_router(topics_routes.router, prefix="/api", tags=["Topics"])
 app.include_router(insights_routes.router, prefix="/api/insights", tags=["Insights"])
 app.include_router(achievements_routes.router, prefix="/api/achievements", tags=["Achievements"])
+app.include_router(sessions_routes.router, prefix="/api", tags=["Sessions"])
+app.include_router(evaluations_routes.router, prefix="/api", tags=["Evaluations"])
+app.include_router(interview_routes.router, prefix="/api", tags=["Interviews"])
 
 @app.get("/")
 async def root():

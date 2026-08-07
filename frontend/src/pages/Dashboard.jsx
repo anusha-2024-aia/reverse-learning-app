@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, BookOpen, BrainCircuit, Zap, AlertCircle, ArrowUpRight, Flame, Award, Star } from 'lucide-react';
-
+import api from '../api/axios';
 const Dashboard = () => {
     const [curricula, setCurricula] = useState([]);
     const [summary, setSummary] = useState(null);
@@ -10,12 +10,12 @@ const Dashboard = () => {
 
     useEffect(() => {
         Promise.all([
-            fetch('http://localhost:8000/api/curricula').then(res => res.json()),
-            fetch('http://localhost:8000/api/insights/summary').then(res => res.json())
+            api.get('/curricula'),
+            api.get('/insights/summary')
         ])
-        .then(([curriculaData, summaryData]) => {
-            setCurricula(curriculaData.curricula || []);
-            setSummary(summaryData);
+        .then(([curriculaRes, summaryRes]) => {
+            setCurricula(curriculaRes.data.curricula || []);
+            setSummary(summaryRes.data);
             setLoading(false);
         })
         .catch(err => {

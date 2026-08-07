@@ -6,12 +6,10 @@ from app.models import Topic, Curriculum
 router = APIRouter()
 
 @router.get("/topics")
-def get_topics(curriculum_id: int = None, difficulty: str = None, db: Session = Depends(get_db)):
+def get_topics(curriculum_id: int = None, db: Session = Depends(get_db)):
     query = db.query(Topic)
     if curriculum_id:
         query = query.filter(Topic.curriculum_id == curriculum_id)
-    if difficulty:
-        query = query.filter(Topic.difficulty == difficulty)
         
     topics = query.all()
     result = []
@@ -37,6 +35,5 @@ def get_topic(topic_id: int, db: Session = Depends(get_db)):
         "name": t.name,
         "curriculum_id": t.curriculum_id,
         "curriculum_name": c.name if c else None,
-        "description": t.description,
-        "difficulty": t.difficulty
+        "description": t.description
     }
