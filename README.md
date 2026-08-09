@@ -1,5 +1,12 @@
 # Reverse Learning Studio: AI-Powered "Feynman Technique" Application
 
+## 🚀 Live Demo
+
+- 🌐 **Live Application:** [Reverse Learning App](https://reverse-learning-frontend-anusha.onrender.com)
+- ⚙️ **Backend API:** [Reverse Learning API](https://reverse-learning-app.onrender.com)
+- 📚 **API Documentation:** [Swagger API Docs](https://reverse-learning-app.onrender.com/docs)
+- 📄 **OpenAPI Specification:** [OpenAPI JSON](https://reverse-learning-app.onrender.com/openapi.json)
+
 ## 📌 Problem Statement
 Traditional passive learning (reading, watching lectures) often leads to the illusion of competence, where students recognize material but cannot actively apply or explain it. When preparing for technical interviews, exams, or complex real-world engineering tasks, the inability to articulate concepts clearly becomes a massive bottleneck. Learners lack immediate, objective, and personalized feedback on their true comprehension.
 
