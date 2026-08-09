@@ -22,7 +22,6 @@ class SessionOut(BaseModel):
         from_attributes = True
 
 class EvaluationCreate(BaseModel):
-    session_id: int
     topic_id: int
     explanation: str
     learning_mode: str = "general"
@@ -33,6 +32,10 @@ class EvaluationOut(BaseModel):
     ai_score: Optional[int] = None
     ai_feedback_json: Optional[str] = None
     created_at: datetime
+    # New fields
+    explanation_length: Optional[int] = None
+    strengths_count: Optional[int] = None
+    weaknesses_count: Optional[int] = None
 
     class Config:
         from_attributes = True

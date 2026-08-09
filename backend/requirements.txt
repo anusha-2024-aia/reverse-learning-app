@@ -9,6 +9,6 @@ bcrypt
 email-validator
 SQLAlchemy
 pymongo
-google-generativeai
+openai
 PyMuPDF
 python-docx

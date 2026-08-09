@@ -1,8 +1,13 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { BookOpen, Home, Layers, History, BarChart2, Award, Mic } from 'lucide-react';
+import { BookOpen, Home, Layers, History, BarChart2, Award, Mic, LogOut } from 'lucide-react';
+import { AuthContext } from '../context/AuthContext';
 
 const Navbar = () => {
+    const { isLoggedIn, logout } = React.useContext(AuthContext);
+    
+    if (!isLoggedIn) return null;
+
     return (
         <header className="sticky top-0 z-50 bg-slate-900/80 backdrop-blur-md border-b border-white/10 p-4">
             <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -32,6 +37,12 @@ const Navbar = () => {
                     <NavLink to="/history" className={({ isActive }) => `flex items-center gap-2 text-sm font-medium transition-colors ${isActive ? 'text-indigo-400' : 'text-slate-400 hover:text-slate-200'}`}>
                         <History className="w-4 h-4" /> History
                     </NavLink>
+                    <button 
+                        onClick={logout}
+                        className="ml-4 flex items-center gap-2 text-sm font-medium text-red-400 hover:text-red-300 transition-colors"
+                    >
+                        <LogOut className="w-4 h-4" /> Logout
+                    </button>
                 </nav>
             </div>
         </header>

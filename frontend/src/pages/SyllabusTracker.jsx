@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle2, Circle, ArrowRight, PlayCircle, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
+import api from '../api/axios';
 
 const SyllabusTracker = () => {
     const [curricula, setCurricula] = useState([]);
@@ -12,13 +13,13 @@ const SyllabusTracker = () => {
         const fetchProgress = async () => {
             try {
                 // Fetch all curricula
-                const res = await fetch('http://localhost:8000/api/curricula');
-                const data = await res.json();
+                const res = await api.get('/curricula');
+                const data = res.data;
                 
                 // Fetch progress for each
                 const progressPromises = data.curricula.map(async (c) => {
-                    const progRes = await fetch(`http://localhost:8000/api/curricula/${c.id}/progress`);
-                    const progData = await progRes.json();
+                    const progRes = await api.get(`/curricula/${c.id}/progress`);
+                    const progData = progRes.data;
                     
                     const completedTopics = progData.topics.filter(t => t.best_score !== null).length;
                     const totalTopics = progData.topics.length;

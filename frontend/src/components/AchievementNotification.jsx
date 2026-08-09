@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Award, X } from 'lucide-react';
+import api from '../api/axios';
 
 const AchievementNotification = () => {
     const [achievements, setAchievements] = useState([]);
@@ -7,9 +8,9 @@ const AchievementNotification = () => {
     useEffect(() => {
         // Poll for new achievements every 10 seconds
         const interval = setInterval(() => {
-            fetch('http://localhost:8000/api/achievements/recent-unlocks')
-                .then(res => res.json())
-                .then(data => {
+            api.get('/achievements/recent-unlocks')
+                .then(res => {
+                    const data = res.data;
                     if (data && data.length > 0) {
                         setAchievements(prev => [...prev, ...data]);
                     }

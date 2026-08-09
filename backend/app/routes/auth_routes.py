@@ -15,7 +15,7 @@ class UserCreate(BaseModel):
     password: str
 
 class UserLogin(BaseModel):
-    username: str
+    username_or_email: str
     password: str
 
 class Token(BaseModel):
@@ -62,8 +62,11 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=Token)
 def login(user_credentials: UserLogin, db: Session = Depends(get_db)):
-    # Verify user existence and password
-    user = db.query(models.User).filter(models.User.username == user_credentials.username).first()
+    # Verify user existence and password by username or email
+    user = db.query(models.User).filter(
+        (models.User.username == user_credentials.username_or_email) | 
+        (models.User.email == user_credentials.username_or_email)
+    ).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

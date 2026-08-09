@@ -5,6 +5,7 @@ import StatsCard from '../components/StatsCard';
 import ProgressChart from '../components/ProgressChart';
 import TopicList from '../components/TopicList';
 import CurriculumProgressBar from '../components/CurriculumProgressBar';
+import api from '../api/axios';
 
 const InsightsDashboard = () => {
     const navigate = useNavigate();
@@ -26,23 +27,23 @@ const InsightsDashboard = () => {
                     summaryRes, scoreTrendRes, weakTopicsRes, 
                     mostImprovedRes, mostAttemptedRes, grammarTrendRes, curriculumStatsRes
                 ] = await Promise.all([
-                    fetch('http://localhost:8000/api/insights/summary'),
-                    fetch('http://localhost:8000/api/insights/score-trend?days=14'),
-                    fetch('http://localhost:8000/api/insights/weak-topics'),
-                    fetch('http://localhost:8000/api/insights/most-improved'),
-                    fetch('http://localhost:8000/api/insights/most-attempted'),
-                    fetch('http://localhost:8000/api/insights/grammar-trend?days=14'),
-                    fetch('http://localhost:8000/api/insights/curriculum-stats')
+                    api.get('/insights/summary'),
+                    api.get('/insights/score-trend?days=14'),
+                    api.get('/insights/weak-topics'),
+                    api.get('/insights/most-improved'),
+                    api.get('/insights/most-attempted'),
+                    api.get('/insights/grammar-trend?days=14'),
+                    api.get('/insights/curriculum-stats')
                 ]);
 
                 setData({
-                    summary: await summaryRes.json(),
-                    scoreTrend: await scoreTrendRes.json(),
-                    weakTopics: await weakTopicsRes.json(),
-                    mostImproved: await mostImprovedRes.json(),
-                    mostAttempted: await mostAttemptedRes.json(),
-                    grammarTrend: await grammarTrendRes.json(),
-                    curriculumStats: await curriculumStatsRes.json()
+                    summary: summaryRes.data,
+                    scoreTrend: scoreTrendRes.data,
+                    weakTopics: weakTopicsRes.data,
+                    mostImproved: mostImprovedRes.data,
+                    mostAttempted: mostAttemptedRes.data,
+                    grammarTrend: grammarTrendRes.data,
+                    curriculumStats: curriculumStatsRes.data
                 });
             } catch (error) {
                 console.error("Failed to fetch insights:", error);

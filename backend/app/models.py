@@ -51,6 +51,9 @@ class Evaluation(Base):
     explanation = Column(Text, nullable=True)
     ai_score = Column(Integer, nullable=True)
     ai_feedback_json = Column(Text, nullable=True)
+    explanation_length = Column(Integer, nullable=True)
+    strengths_count = Column(Integer, nullable=True)
+    weaknesses_count = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 class AchievementTemplate(Base):

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Star, Flame, Rocket, Award, ShieldCheck, Moon, Sun, Crown, CheckCircle, Zap, Map as MapIcon, Book, Target, PenTool } from 'lucide-react';
+import api from '../api/axios';
 
 const ICONS = {
     'star': Star,
@@ -25,8 +26,8 @@ const AchievementsPage = () => {
 
     useEffect(() => {
         Promise.all([
-            fetch('http://localhost:8000/api/achievements/mine').then(res => res.json()),
-            fetch('http://localhost:8000/api/achievements/streak').then(res => res.json())
+            api.get('/achievements/mine').then(res => res.data),
+            api.get('/achievements/streak').then(res => res.data)
         ])
         .then(([achievementsRes, streakRes]) => {
             setData(achievementsRes);

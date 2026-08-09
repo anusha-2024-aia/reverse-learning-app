@@ -40,16 +40,16 @@ def get_summary_stats(db: Session, user_id: int):
             "most_studied_curriculum": None, "most_studied_topic": None
         }
         
-    avg_score = db.query(func.avg(Evaluation.score)).filter(
-        Evaluation.user_id == user_id, Evaluation.score != None
+    avg_score = db.query(func.avg(Evaluation.ai_score)).filter(
+        Evaluation.user_id == user_id, Evaluation.ai_score != None
     ).scalar() or 0
     
     days_active = db.query(func.count(func.distinct(func.date(Evaluation.created_at)))).filter(
         Evaluation.user_id == user_id
     ).scalar() or 0
     
-    best_score = db.query(func.max(Evaluation.score)).filter(Evaluation.user_id == user_id).scalar() or 0
-    worst_score = db.query(func.min(Evaluation.score)).filter(Evaluation.user_id == user_id, Evaluation.score != None).scalar() or 0
+    best_score = db.query(func.max(Evaluation.ai_score)).filter(Evaluation.user_id == user_id).scalar() or 0
+    worst_score = db.query(func.min(Evaluation.ai_score)).filter(Evaluation.user_id == user_id, Evaluation.ai_score != None).scalar() or 0
     
     # Most studied topic
     most_topic = db.query(Topic.name, func.count(Evaluation.id).label('count')).join(
@@ -80,12 +80,12 @@ def calculate_score_trend(db: Session, user_id: int, days: int = 7):
     
     daily_stats = db.query(
         func.date(Evaluation.created_at).label('date'),
-        func.avg(Evaluation.score).label('avg_score'),
+        func.avg(Evaluation.ai_score).label('avg_score'),
         func.count(Evaluation.id).label('count')
     ).filter(
         Evaluation.user_id == user_id,
         Evaluation.created_at >= cutoff,
-        Evaluation.score != None
+        Evaluation.ai_score != None
     ).group_by('date').order_by('date').all()
     
     trend_data = [{"date": stat.date, "average_score": round(stat.avg_score, 1), "count": stat.count} for stat in daily_stats]
@@ -105,14 +105,14 @@ def get_weak_topics(db: Session, user_id: int, limit: int = 5):
     weak = db.query(
         Topic.id.label('topic_id'),
         Topic.name.label('topic_name'),
-        func.avg(Evaluation.score).label('avg_score'),
+        func.avg(Evaluation.ai_score).label('avg_score'),
         func.count(Evaluation.id).label('attempts'),
-        func.max(Evaluation.score).label('best_score')
+        func.max(Evaluation.ai_score).label('best_score')
     ).join(
         Evaluation, Topic.id == Evaluation.topic_id
     ).filter(
         Evaluation.user_id == user_id,
-        Evaluation.score != None
+        Evaluation.ai_score != None
     ).group_by(Topic.id, Topic.name).order_by(asc('avg_score')).limit(limit).all()
     
     return {"weak_topics": [{"topic_id": w.topic_id, "topic_name": w.topic_name, "avg_score": round(w.avg_score, 1), "attempts": w.attempts, "best_score": w.best_score} for w in weak]}
@@ -127,12 +127,12 @@ def get_most_improved_topics(db: Session, user_id: int, limit: int = 5):
         evals = db.query(Evaluation).filter(
             Evaluation.topic_id == t.id, 
             Evaluation.user_id == user_id,
-            Evaluation.score != None
+            Evaluation.ai_score != None
         ).order_by(Evaluation.created_at).all()
         
         if len(evals) >= 2:
-            first = evals[0].score
-            latest = evals[-1].score
+            first = evals[0].ai_score
+            latest = evals[-1].ai_score
             diff = latest - first
             if diff > 0:
                 improvements.append({
@@ -152,7 +152,7 @@ def get_most_attempted_topics(db: Session, user_id: int, limit: int = 5):
         Topic.id.label('topic_id'),
         Topic.name.label('topic_name'),
         func.count(Evaluation.id).label('attempts'),
-        func.avg(Evaluation.score).label('avg_score')
+        func.avg(Evaluation.ai_score).label('avg_score')
     ).join(
         Evaluation, Topic.id == Evaluation.topic_id
     ).filter(
@@ -225,7 +225,7 @@ def get_curriculum_stats(db: Session, user_id: int):
             
             if evals:
                 completed_topics += 1
-                topic_scores.extend([e.score for e in evals if e.score is not None])
+                topic_scores.extend([e.ai_score for e in evals if e.ai_score is not None])
                 
                 latest_eval = max([e.created_at for e in evals])
                 if not last_studied or latest_eval > last_studied:

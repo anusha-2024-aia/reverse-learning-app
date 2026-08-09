@@ -16,9 +16,16 @@ const SignupPage = () => {
     setError(null);
     setIsLoading(true);
     
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError("Please enter a valid email address.");
+      setIsLoading(false);
+      return;
+    }
+    
     const result = await signup(username, email, password);
     if (result.success) {
-      navigate('/');
+      navigate('/login');
     } else {
       setError(result.error);
     }

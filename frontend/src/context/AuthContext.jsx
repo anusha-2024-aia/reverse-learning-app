@@ -4,7 +4,7 @@ import api from '../api/axios';
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [token, setToken] = useState(sessionStorage.getItem('token'));
   const [user, setUser] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(!!token);
   const [loading, setLoading] = useState(true);
@@ -32,42 +32,45 @@ export const AuthProvider = ({ children }) => {
     fetchUser();
   }, [token]);
 
-  const login = async (username, password) => {
+  const login = async (usernameOrEmail, password) => {
     try {
-      const response = await api.post('/auth/login', { username, password });
+      const response = await api.post('/auth/login', { username_or_email: usernameOrEmail, password });
       const newToken = response.data.access_token;
-      localStorage.setItem('token', newToken);
+      sessionStorage.setItem('token', newToken);
       setToken(newToken);
       setIsLoggedIn(true);
       return { success: true };
     } catch (error) {
       console.error("Login error:", error);
-      return { 
-        success: false, 
-        error: error.response?.data?.detail || 'An error occurred during login' 
-      };
+      let errorMessage = 'An error occurred during login';
+      if (error.response?.data?.detail) {
+        errorMessage = typeof error.response.data.detail === 'string' 
+          ? error.response.data.detail 
+          : JSON.stringify(error.response.data.detail);
+      }
+      return { success: false, error: errorMessage };
     }
   };
 
   const signup = async (username, email, password) => {
     try {
-      const response = await api.post('/auth/register', { username, email, password });
-      const newToken = response.data.token;
-      localStorage.setItem('token', newToken);
-      setToken(newToken);
-      setIsLoggedIn(true);
+      await api.post('/auth/register', { username, email, password });
+      // Do not auto login.
       return { success: true };
     } catch (error) {
       console.error("Signup error:", error);
-      return { 
-        success: false, 
-        error: error.response?.data?.detail || 'An error occurred during signup' 
-      };
+      let errorMessage = 'An error occurred during signup';
+      if (error.response?.data?.detail) {
+        errorMessage = typeof error.response.data.detail === 'string' 
+          ? error.response.data.detail 
+          : JSON.stringify(error.response.data.detail);
+      }
+      return { success: false, error: errorMessage };
     }
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
+    sessionStorage.removeItem('token');
     setToken(null);
     setUser(null);
     setIsLoggedIn(false);

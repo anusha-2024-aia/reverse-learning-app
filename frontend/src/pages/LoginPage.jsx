@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 
 const LoginPage = () => {
-  const [username, setUsername] = useState('');
+  const [usernameOrEmail, setUsernameOrEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -15,7 +15,7 @@ const LoginPage = () => {
     setError(null);
     setIsLoading(true);
     
-    const result = await login(username, password);
+    const result = await login(usernameOrEmail, password);
     if (result.success) {
       navigate('/');
     } else {
@@ -39,15 +39,15 @@ const LoginPage = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1" htmlFor="username">
-              Username
+              Username or Email
             </label>
             <input
               id="username"
               type="text"
               required
               className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              value={usernameOrEmail}
+              onChange={(e) => setUsernameOrEmail(e.target.value)}
             />
           </div>
           

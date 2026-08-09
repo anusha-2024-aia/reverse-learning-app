@@ -13,7 +13,7 @@ const StudyHistory = () => {
             .then(res => setCurricula(res.data.curricula || []))
             .catch(err => console.error(err));
         
-        api.get('/sessions/evaluations/mine')
+        api.get('/evaluations/mine')
             .then(res => {
                 const fetchedHistory = res.data.evaluations || res.data || [];
                 // Sort by most recent (created_at or date)

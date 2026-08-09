@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { BookOpen, Layers, Send, Loader2, Target, Code, MessageCircle, AlertCircle, Save, CheckCircle2, RotateCcw, ChevronRight, Volume2, Mic, MicOff, Type, Headphones } from 'lucide-react';
+import EvaluationFeedback from '../components/EvaluationFeedback';
 import FeedbackCard from '../components/FeedbackCard';
 import api from '../api/axios';
 
@@ -175,12 +176,23 @@ const StudyRoom = () => {
                 learning_mode: learningMode
             });
             
-            setEvaluation(res.data);
+            // Parse ai_feedback_json if it is a string
+            let evalData = res.data;
+            if (typeof evalData.ai_feedback_json === 'string') {
+                try {
+                    evalData.ai_feedback_json = JSON.parse(evalData.ai_feedback_json);
+                } catch(e) {
+                    console.error("Failed to parse ai_feedback_json", e);
+                }
+            }
+            
+            setEvaluation(evalData);
             sessionStorage.removeItem(`draft_${selectedTopicId}`);
 
             // Automatically speak if in voice-to-voice mode
             if (evaluationMode === 'voice-to-voice') {
-                handleSpeak(res.data.summary || res.data.ai_feedback_json?.summary || res.data.advanced_version);
+                const textToSpeak = evalData.summary || evalData.correct_version;
+                handleSpeak(textToSpeak);
             }
         } catch (err) {
             console.error(err);
@@ -254,114 +266,6 @@ const StudyRoom = () => {
                     </select>
                 </div>
             </div>
-
-            {evaluation && (
-                <div className="space-y-6 animate-in slide-in-from-bottom-8 duration-700 mb-8">
-                    <div className="bg-slate-800 rounded-3xl border border-slate-700 shadow-2xl overflow-hidden p-8">
-                        <div className="flex justify-between items-start mb-8">
-                            <h2 className="text-3xl font-black text-white flex items-center gap-3">
-                                AI Feedback
-                                <button
-                                    onClick={() => handleSpeak(evaluation.summary || evaluation.ai_feedback_json?.summary || evaluation.advanced_version)}
-                                    className="p-2 bg-slate-700/50 hover:bg-indigo-500 text-slate-300 hover:text-white rounded-full transition-colors"
-                                    title="Listen to feedback"
-                                >
-                                    <Volume2 className="w-5 h-5" />
-                                </button>
-                            </h2>
-                            
-                            <div className="flex items-center justify-center w-24 h-24 rounded-full border-4 shadow-lg shrink-0" 
-                                style={{
-                                    borderColor: (evaluation.score || evaluation.ai_score) >= 8 ? '#10b981' : (evaluation.score || evaluation.ai_score) >= 5 ? '#f59e0b' : '#ef4444',
-                                    background: 'rgba(15, 23, 42, 0.5)'
-                                }}>
-                                <div className="text-center">
-                                    <span className="text-3xl font-black text-white">{evaluation.score || evaluation.ai_score || 0}</span>
-                                    <span className="text-sm text-slate-400 block -mt-1">/ 10</span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        {evaluation.summary && (
-                            <div className="mb-8">
-                                <h3 className="text-lg font-bold text-slate-300 mb-2 border-b border-slate-700 pb-2">Summary</h3>
-                                <p className="text-slate-300 leading-relaxed text-lg">{evaluation.summary}</p>
-                            </div>
-                        )}
-                        {evaluation.ai_feedback_json && evaluation.ai_feedback_json.summary && !evaluation.summary && (
-                            <div className="mb-8">
-                                <h3 className="text-lg font-bold text-slate-300 mb-2 border-b border-slate-700 pb-2">Summary</h3>
-                                <p className="text-slate-300 leading-relaxed text-lg">{evaluation.ai_feedback_json.summary}</p>
-                            </div>
-                        )}
-                        
-                        <div className="grid md:grid-cols-2 gap-6 mb-8">
-                            {evaluation.grammar_issues && evaluation.grammar_issues.length > 0 && (
-                                <div className="bg-slate-900 rounded-xl p-6 border border-slate-700">
-                                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Grammar & Clarity</h3>
-                                    <ul className="space-y-3">
-                                        {evaluation.grammar_issues.map((issue, i) => (
-                                            <li key={i} className="flex gap-2 text-sm">
-                                                <span className="text-red-400 shrink-0 mt-0.5">•</span>
-                                                <span className="text-slate-300">{issue}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-
-                            {evaluation.vocabulary_suggestions && evaluation.vocabulary_suggestions.length > 0 && (
-                                <div className="bg-slate-900 rounded-xl p-6 border border-slate-700">
-                                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Vocabulary Suggestions</h3>
-                                    <div className="flex flex-wrap gap-2">
-                                        {evaluation.vocabulary_suggestions.map((word, i) => (
-                                            <span key={i} className="bg-indigo-900/50 text-indigo-300 border border-indigo-500/30 px-3 py-1.5 rounded-full text-sm font-medium">
-                                                {word}
-                                            </span>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                        
-                        {evaluation.advanced_version && (
-                            <div className="mb-8 bg-slate-900/50 rounded-xl p-6 border border-slate-700 border-l-4 border-l-indigo-500">
-                                <h3 className="text-sm font-bold text-indigo-400 uppercase tracking-wider mb-4">Advanced Explanation Version</h3>
-                                <p className="text-slate-300 leading-relaxed italic">"{evaluation.advanced_version}"</p>
-                            </div>
-                        )}
-                        
-                        {evaluation.follow_up_question && (
-                            <div className="mb-8 bg-blue-900/20 rounded-xl p-6 border border-blue-500/30">
-                                <h3 className="text-sm font-bold text-blue-400 uppercase tracking-wider mb-2 flex items-center gap-2">
-                                    <MessageCircle className="w-4 h-4" /> Challenge Question
-                                </h3>
-                                <p className="text-slate-200 text-lg font-medium">{evaluation.follow_up_question}</p>
-                            </div>
-                        )}
-                        
-                        <div className="flex flex-col sm:flex-row gap-4 mt-8 pt-8 border-t border-slate-700">
-                            <button 
-                                onClick={() => setEvaluation(null)}
-                                className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
-                            >
-                                <RotateCcw className="w-5 h-5" /> Retry This Topic
-                            </button>
-                            
-                            <button 
-                                onClick={handleNextTopic}
-                                className="flex-1 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 shadow-lg"
-                            >
-                                Next Topic <ChevronRight className="w-5 h-5" />
-                            </button>
-                        </div>
-                        
-                        <div className="mt-6 text-center text-sm text-green-400 flex items-center justify-center gap-2">
-                            <CheckCircle2 className="w-4 h-4" /> Evaluation successfully saved to your Study History
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {topicDetails && (
                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -469,6 +373,15 @@ const StudyRoom = () => {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {evaluation && (
+                <EvaluationFeedback 
+                    feedback={evaluation} 
+                    studentExplanation={explanation}
+                    onRetry={() => setEvaluation(null)}
+                    onContinue={handleNextTopic} 
+                />
             )}
         </div>
     );

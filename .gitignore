@@ -44,3 +44,16 @@ frontend/node_modules/
 frontend/dist/
 frontend/.env
 frontend/.env.local
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Local database
+backend/study.db
+
+# Temporary/test files
+backend/requirements-old.txt
+backend/add_columns.py
+backend/test_api.py
+backend/test_eval.py

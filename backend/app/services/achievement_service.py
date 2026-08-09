@@ -28,7 +28,7 @@ def check_achievements_for_user(db: Session, user_id: int):
                 unlocked_now = True
                 
         elif template.criteria_type == "perfect_score":
-            perfects = sum(1 for e in evals if e.score == 10)
+            perfects = sum(1 for e in evals if e.ai_score == 10)
             if perfects >= template.criteria_threshold:
                 unlocked_now = True
                 
@@ -50,7 +50,7 @@ def check_achievements_for_user(db: Session, user_id: int):
                 unlocked_now = True
                 
         elif template.criteria_type == "topic_perfect":
-            if any(e.score == 10 for e in evals):
+            if any(e.ai_score == 10 for e in evals):
                 unlocked_now = True
                 
         elif template.criteria_type == "midnight_eval":
