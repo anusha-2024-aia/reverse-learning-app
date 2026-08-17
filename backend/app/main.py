@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from app.routes import study_routes, curriculum_routes, topics_routes, insights_routes, achievements_routes, sessions_routes, evaluations_routes, auth_routes, interview_routes
+from app.routes import study_routes, curriculum_routes, topics_routes, insights_routes, achievements_routes, sessions_routes, evaluations_routes, auth_routes, interview_routes, adaptive_routes, roadmap_routes, analytics_routes
 from contextlib import asynccontextmanager
 from app.database import engine, get_db, SessionLocal
 from app import models
@@ -138,6 +138,9 @@ app.include_router(achievements_routes.router, prefix="/api/achievements", tags=
 app.include_router(sessions_routes.router, prefix="/api", tags=["Sessions"])
 app.include_router(evaluations_routes.router, prefix="/api", tags=["Evaluations"])
 app.include_router(interview_routes.router, prefix="/api", tags=["Interviews"])
+app.include_router(adaptive_routes.router, prefix="/api", tags=["Adaptive Engine"])
+app.include_router(roadmap_routes.router, prefix="/api", tags=["Roadmap"])
+app.include_router(analytics_routes.router, prefix="/api", tags=["Analytics"])
 
 @app.get("/")
 async def root():

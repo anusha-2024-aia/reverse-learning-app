@@ -9,72 +9,87 @@ const api = axios.create({
     },
 });
 
-export const evaluateExplanation = async (
-    topic,
-    explanation,
-    mode = 'general'
-) => {
-    try {
-        const response = await api.post('/evaluate', {
-            topic,
-            explanation,
-            learning_mode: mode
-        });
-
-        return response.data;
-
-    } catch (error) {
-        console.error('Error evaluating explanation:', error);
-        throw error;
+api.interceptors.request.use(
+    (config) => {
+        const token = sessionStorage.getItem('token');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
     }
+);
+
+// Study Session / Topics
+export const evaluateExplanation = async (topic, explanation, mode = 'general') => {
+    const response = await api.post('/evaluate', { topic, explanation, learning_mode: mode });
+    return response.data;
 };
 
-export const evaluateExplanationStream = async (
-    topic,
-    explanation,
-    mode,
-    onChunk
-) => {
-    try {
-        const response = await fetch(`${API_BASE_URL}/evaluate-stream`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                topic,
-                explanation,
-                learning_mode: mode
-            }),
-        });
+// Adaptive Engine
+export const getWeakTopics = async () => {
+    const response = await api.get('/recommendations/weak-topics');
+    return response.data;
+};
 
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
+export const getStrongTopics = async () => {
+    const response = await api.get('/recommendations/strong-topics');
+    return response.data;
+};
 
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
+// Roadmap
+export const generateRoadmap = async () => {
+    const response = await api.post('/roadmap/generate');
+    return response.data;
+};
 
-        let fullText = '';
+export const getMyRoadmap = async () => {
+    const response = await api.get('/roadmap/mine');
+    return response.data;
+};
 
-        while (true) {
-            const { done, value } = await reader.read();
+// Interviews & Resumes
+export const uploadResume = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('/interview/resume/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data;
+};
 
-            if (done) break;
+export const startInterview = async (targetRole, difficulty, interviewType, resumeId) => {
+    const formData = new FormData();
+    formData.append('target_role', targetRole);
+    formData.append('difficulty', difficulty);
+    formData.append('interview_type', interviewType);
+    if (resumeId) formData.append('resume_id', resumeId);
+    
+    const response = await api.post('/interview/start', formData);
+    return response.data;
+};
 
-            const chunk = decoder.decode(value, { stream: true });
+export const answerInterviewQuestion = async (interviewId, questionId, answer, isFinal) => {
+    const response = await api.post('/interview/answer', {
+        interview_id: interviewId,
+        current_question_id: questionId,
+        answer,
+        is_final: isFinal
+    });
+    return response.data;
+};
 
-            fullText += chunk;
+export const getInterviewHistory = async () => {
+    const response = await api.get('/interview/history');
+    return response.data;
+};
 
-            onChunk(fullText);
-        }
-
-        return fullText;
-
-    } catch (error) {
-        console.error('Error in streaming evaluation:', error);
-        throw error;
-    }
+// Analytics & Dashboard
+export const getDashboardAnalytics = async () => {
+    const response = await api.get('/analytics/dashboard');
+    return response.data;
 };
 
 export default api;

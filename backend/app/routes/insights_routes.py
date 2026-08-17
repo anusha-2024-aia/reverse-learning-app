@@ -23,6 +23,14 @@ def get_weak_topics(db: Session = Depends(get_db)):
 def get_most_improved(db: Session = Depends(get_db)):
     return insights_service.get_most_improved_topics(db, USER_ID)
 
+@router.get("/strong-topics")
+def get_strong_topics(db: Session = Depends(get_db)):
+    return insights_service.get_strong_topics(db, USER_ID)
+
+@router.get("/ai-insight")
+def get_ai_insight(db: Session = Depends(get_db)):
+    return insights_service.get_ai_insight(db, USER_ID)
+
 @router.get("/most-attempted")
 def get_most_attempted(db: Session = Depends(get_db)):
     return insights_service.get_most_attempted_topics(db, USER_ID)

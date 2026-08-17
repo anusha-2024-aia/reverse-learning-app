@@ -117,6 +117,50 @@ def get_weak_topics(db: Session, user_id: int, limit: int = 5):
     
     return {"weak_topics": [{"topic_id": w.topic_id, "topic_name": w.topic_name, "avg_score": round(w.avg_score, 1), "attempts": w.attempts, "best_score": w.best_score} for w in weak]}
 
+def get_strong_topics(db: Session, user_id: int, limit: int = 5):
+    strong = db.query(
+        Topic.id.label('topic_id'),
+        Topic.name.label('topic_name'),
+        func.avg(Evaluation.ai_score).label('avg_score'),
+        func.count(Evaluation.id).label('attempts'),
+        func.max(Evaluation.ai_score).label('best_score')
+    ).join(
+        Evaluation, Topic.id == Evaluation.topic_id
+    ).filter(
+        Evaluation.user_id == user_id,
+        Evaluation.ai_score != None
+    ).group_by(Topic.id, Topic.name).having(func.count(Evaluation.id) > 0).order_by(desc('avg_score')).limit(limit).all()
+    
+    return {"strong_topics": [{"topic_id": s.topic_id, "topic_name": s.topic_name, "avg_score": round(s.avg_score, 1), "attempts": s.attempts, "best_score": s.best_score} for s in strong]}
+
+def get_ai_insight(db: Session, user_id: int):
+    # Fetch recent trend
+    trend = calculate_score_trend(db, user_id, days=14)
+    overall_trend = trend.get("overall_trend", "stable")
+    
+    # Fetch weak topics
+    weak = get_weak_topics(db, user_id, limit=1).get("weak_topics", [])
+    weak_topic_name = weak[0]["topic_name"] if weak else None
+    
+    # Generate simple deterministic insight
+    if overall_trend == "improving":
+        if weak_topic_name:
+            insight = f"Your overall performance has been improving recently! However, '{weak_topic_name}' is still dragging your score down. Focus there next."
+        else:
+            insight = "You are on a steady path of improvement! Keep practicing advanced topics to maintain this trajectory."
+    elif overall_trend == "declining":
+        if weak_topic_name:
+            insight = f"Your recent scores show a decline. We strongly recommend reviewing '{weak_topic_name}' fundamentals before taking more mock interviews."
+        else:
+            insight = "Your performance is slightly declining. Take a break and review your core fundamentals."
+    else:
+        if weak_topic_name:
+            insight = f"Your performance is currently stable. To break through to the next level, dedicate some time to practicing '{weak_topic_name}'."
+        else:
+            insight = "You have a solid, stable foundation. Start taking on more difficult topics to challenge yourself!"
+            
+    return {"insight": insight}
+
 def get_most_improved_topics(db: Session, user_id: int, limit: int = 5):
     # This requires looking at first attempt vs latest attempt.
     # We will do this mostly in Python since SQL for first/last in SQLite is tricky.

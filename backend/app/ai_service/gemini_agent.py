@@ -65,6 +65,12 @@ async def stream_evaluate_explanation(topic: str, user_explanation: str, learnin
     - "correct_version": "(Ideal answer 200-300 words)"
     - "follow_up_question": "(A deeper question to challenge student)"
     - "learning_suggestions": ["Topic/Skill 1", "Practice Exercise 2", "Advanced Concept 3"]
+    - "communication_score": (1-100 integer)
+    - "speaking_pace_score": (1-100 integer)
+    - "clarity_score": (1-100 integer)
+    - "grammar_score": (1-100 integer)
+    - "vocabulary_score": (1-100 integer)
+    - "filler_words": (integer, count of filler words like um, ah, like)
     - "feedback_sections": [
         {{
             "title": "TECHNICAL EVALUATION",
@@ -112,7 +118,7 @@ async def stream_evaluate_explanation(topic: str, user_explanation: str, learnin
         else:
             user_msg = f"AI evaluation error: {err_str}"
         yield f"<thinking>Error occurred: {err_str}</thinking>"
-        yield f'<json>{{"score": 0, "summary": "{user_msg}", "strengths": [], "weaknesses": ["System Error"], "correct_version": "N/A", "follow_up_question": "N/A", "learning_suggestions": [], "feedback_sections": []}}</json>'
+        yield f'<json>{{"score": 0, "summary": "{user_msg}", "strengths": [], "weaknesses": ["System Error"], "correct_version": "N/A", "follow_up_question": "N/A", "learning_suggestions": [], "communication_score": 0, "speaking_pace_score": 0, "clarity_score": 0, "grammar_score": 0, "vocabulary_score": 0, "filler_words": 0, "feedback_sections": []}}</json>'
 
 async def evaluate_explanation(topic: str, user_explanation: str, learning_mode: str = "general"):
     """

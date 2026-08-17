@@ -12,3 +12,5 @@ pymongo
 openai
 PyMuPDF
 python-docx
+pytest
+httpx
