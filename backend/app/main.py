@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from app.routes import study_routes, curriculum_routes, topics_routes, insights_routes, achievements_routes, sessions_routes, evaluations_routes, auth_routes, interview_routes, adaptive_routes, roadmap_routes, analytics_routes
+from app.routes import study_routes, curriculum_routes, topics_routes, insights_routes, achievements_routes, sessions_routes, evaluations_routes, auth_routes, interview_routes, adaptive_routes, roadmap_routes, analytics_routes, knowledge_gap_routes, dashboard_routes, revision_routes, resume_routes, communication_routes
 from contextlib import asynccontextmanager
 from app.database import engine, get_db, SessionLocal
 from app import models
@@ -101,6 +101,11 @@ def seed_topics():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     models.Base.metadata.create_all(bind=engine)
+    try:
+        from app.migrate_v5 import migrate_db
+        migrate_db()
+    except Exception as err:
+        print(f"Migration error in lifespan: {err}")
     seed_topics()
     yield
 
@@ -141,6 +146,13 @@ app.include_router(interview_routes.router, prefix="/api", tags=["Interviews"])
 app.include_router(adaptive_routes.router, prefix="/api", tags=["Adaptive Engine"])
 app.include_router(roadmap_routes.router, prefix="/api", tags=["Roadmap"])
 app.include_router(analytics_routes.router, prefix="/api", tags=["Analytics"])
+app.include_router(knowledge_gap_routes.router, prefix="/api/dashboard/knowledge-gap", tags=["knowledge-gaps"])
+app.include_router(dashboard_routes.router, prefix="/api/dashboard-data", tags=["Dashboard"])
+app.include_router(revision_routes.router, prefix="/api", tags=["Smart Revision"])
+app.include_router(resume_routes.router, prefix="/api", tags=["Resume Intelligence"])
+app.include_router(communication_routes.router, prefix="/api", tags=["Communication Coach"])
+
+
 
 @app.get("/")
 async def root():

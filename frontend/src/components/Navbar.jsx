@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { BookOpen, Home, Layers, History, BarChart2, Award, Mic, LogOut } from 'lucide-react';
+import { BookOpen, Home, Layers, History, BarChart2, Award, Mic, LogOut, Map, RotateCcw, FileText, MessageSquare } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 
 const Navbar = () => {
@@ -19,11 +19,25 @@ const Navbar = () => {
                     <NavLink to="/" className={({ isActive }) => `flex items-center gap-2 text-sm font-medium transition-colors ${isActive ? 'text-indigo-400' : 'text-slate-400 hover:text-slate-200'}`}>
                         <Home className="w-4 h-4" /> Dashboard
                     </NavLink>
+                    <NavLink to="/resume" className={({ isActive }) => `flex items-center gap-2 text-sm font-medium transition-colors ${isActive ? 'text-indigo-400' : 'text-slate-400 hover:text-slate-200'}`}>
+                        <FileText className="w-4 h-4" /> Resume
+                    </NavLink>
+                    <NavLink to="/revision" className={({ isActive }) => `flex items-center gap-2 text-sm font-medium transition-colors ${isActive ? 'text-indigo-400' : 'text-slate-400 hover:text-slate-200'}`}>
+                        <RotateCcw className="w-4 h-4" /> Revision
+                    </NavLink>
+
+                    <NavLink to="/learning-roadmap" className={({ isActive }) => `flex items-center gap-2 text-sm font-medium transition-colors ${isActive ? 'text-indigo-400' : 'text-slate-400 hover:text-slate-200'}`}>
+                        <Map className="w-4 h-4" /> Roadmap
+                    </NavLink>
+
                     <NavLink to="/study" className={({ isActive }) => `flex items-center gap-2 text-sm font-medium transition-colors ${isActive ? 'text-indigo-400' : 'text-slate-400 hover:text-slate-200'}`}>
                         <Layers className="w-4 h-4" /> Study Room
                     </NavLink>
                     <NavLink to="/interview" className={({ isActive }) => `flex items-center gap-2 text-sm font-medium transition-colors ${isActive ? 'text-indigo-400' : 'text-slate-400 hover:text-slate-200'}`}>
                         <Mic className="w-4 h-4" /> Interview
+                    </NavLink>
+                    <NavLink to="/communication-coach" className={({ isActive }) => `flex items-center gap-2 text-sm font-medium transition-colors ${isActive ? 'text-indigo-400' : 'text-slate-400 hover:text-slate-200'}`}>
+                        <MessageSquare className="w-4 h-4" /> Coach
                     </NavLink>
                     <NavLink to="/syllabi" className={({ isActive }) => `flex items-center gap-2 text-sm font-medium transition-colors ${isActive ? 'text-indigo-400' : 'text-slate-400 hover:text-slate-200'}`}>
                         <BookOpen className="w-4 h-4" /> Syllabi
@@ -36,6 +50,9 @@ const Navbar = () => {
                     </NavLink>
                     <NavLink to="/history" className={({ isActive }) => `flex items-center gap-2 text-sm font-medium transition-colors ${isActive ? 'text-indigo-400' : 'text-slate-400 hover:text-slate-200'}`}>
                         <History className="w-4 h-4" /> History
+                    </NavLink>
+                    <NavLink to="/evaluations" className={({ isActive }) => `flex items-center gap-2 text-sm font-medium transition-colors ${isActive ? 'text-indigo-400' : 'text-slate-400 hover:text-slate-200'}`}>
+                        <Award className="w-4 h-4" /> Evaluations
                     </NavLink>
                     <button 
                         onClick={logout}

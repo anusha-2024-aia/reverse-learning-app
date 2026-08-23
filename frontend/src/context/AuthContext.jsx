@@ -4,13 +4,15 @@ import api from '../api/axios';
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [token, setToken] = useState(sessionStorage.getItem('token'));
+  const getStoredToken = () => sessionStorage.getItem('token') || localStorage.getItem('token');
+  const [token, setToken] = useState(getStoredToken());
   const [user, setUser] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(!!token);
   const [loading, setLoading] = useState(true);
 
   const fetchUser = async () => {
-    if (!token) {
+    const activeToken = getStoredToken();
+    if (!activeToken) {
       setLoading(false);
       return;
     }
@@ -37,6 +39,7 @@ export const AuthProvider = ({ children }) => {
       const response = await api.post('/auth/login', { username_or_email: usernameOrEmail, password });
       const newToken = response.data.access_token;
       sessionStorage.setItem('token', newToken);
+      localStorage.setItem('token', newToken);
       setToken(newToken);
       setIsLoggedIn(true);
       return { success: true };
@@ -71,6 +74,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     sessionStorage.removeItem('token');
+    localStorage.removeItem('token');
     setToken(null);
     setUser(null);
     setIsLoggedIn(false);

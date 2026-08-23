@@ -18,19 +18,29 @@ class ResumeParser:
         system_prompt = f"""
         You are an expert technical recruiter and resume parser.
         Extract the following information from the provided resume text.
-        
+
+        STRICT ACCURACY & SAFETY INSTRUCTIONS:
+        1. Base your response ONLY on the provided resume text.
+        2. DO NOT invent, assume, or fabricate any skills, projects, experience, education, or technologies.
+        3. If a section is not mentioned in the resume, use an empty list [].
+
         FORMATTING RULES:
         Output your response strictly as a JSON object inside <json>...</json> tags.
         
+        <json>
         {{
             "skills": ["skill1", "skill2"],
             "projects": [
-                {{"name": "Project Name", "description": "Brief desc", "technologies": ["tech1"]}}
+                {{"name": "Project Name", "description": "Brief description", "technologies": ["tech1"], "role": "Role/contribution if available"}}
             ],
             "experience": [
-                {{"company": "Company", "role": "Role", "duration": "Duration"}}
+                {{"company": "Company", "role": "Role", "duration": "Duration", "description": "Responsibilities"}}
+            ],
+            "education": [
+                {{"degree": "Degree", "institution": "Institution", "course": "Course/Branch", "year": "Graduation Year"}}
             ]
         }}
+        </json>
         
         Resume Text:
         {text}

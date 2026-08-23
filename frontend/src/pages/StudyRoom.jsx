@@ -52,10 +52,18 @@ const StudyRoom = () => {
 
     // Load topics
     useEffect(() => {
+        const queryParams = new URLSearchParams(location.search);
+        const queryTopicId = queryParams.get('topic');
+        const targetTopicId = location.state?.topicId || queryTopicId;
+
         if (!selectedCurriculumId) {
             api.get('/topics')
                 .then(res => {
                     setTopics(res.data.topics || []);
+                    if (targetTopicId) {
+                        setSelectedTopicId(targetTopicId.toString());
+                        window.history.replaceState({}, document.title, location.pathname);
+                    }
                 })
                 .catch(err => console.error(err));
             return;
@@ -63,15 +71,15 @@ const StudyRoom = () => {
         api.get(`/curricula/${selectedCurriculumId}`)
             .then(res => {
                 setTopics(res.data.topics || []);
-                if (location.state?.topicId) {
-                    setSelectedTopicId(location.state.topicId.toString());
-                    window.history.replaceState({}, document.title)
+                if (targetTopicId) {
+                    setSelectedTopicId(targetTopicId.toString());
+                    window.history.replaceState({}, document.title, location.pathname);
                 } else if (res.data.topics && res.data.topics.length > 0) {
                     setSelectedTopicId('');
                 }
             })
             .catch(err => console.error(err));
-    }, [selectedCurriculumId, location.state]);
+    }, [selectedCurriculumId, location.state, location.search]);
 
     // Fetch topic details and load draft
     useEffect(() => {

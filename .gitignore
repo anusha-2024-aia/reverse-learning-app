@@ -51,6 +51,10 @@ __pycache__/
 
 # Local database
 backend/study.db
+backend/sql_app.db
+*.db
+backend/uploads/
+backend/tmp/
 
 # Temporary/test files
 backend/requirements-old.txt
