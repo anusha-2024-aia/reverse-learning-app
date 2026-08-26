@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { BookOpen, Layers, Send, Loader2, Target, Code, MessageCircle, AlertCircle, Save, CheckCircle2, RotateCcw, ChevronRight, Volume2, Mic, MicOff, Type, Headphones } from 'lucide-react';
 import EvaluationFeedback from '../components/EvaluationFeedback';
 import FeedbackCard from '../components/FeedbackCard';
@@ -7,7 +7,6 @@ import api from '../api/axios';
 
 const StudyRoom = () => {
     const location = useLocation();
-    const navigate = useNavigate();
     const [curricula, setCurricula] = useState([]);
     const [selectedCurriculumId, setSelectedCurriculumId] = useState('');
     const [topics, setTopics] = useState([]);

@@ -15,7 +15,7 @@ const Navbar = () => {
                     <BookOpen className="w-6 h-6" />
                     Reverse Learning
                 </div>
-                <nav className="flex items-center gap-6">
+                <nav className="flex flex-wrap items-center gap-x-5 gap-y-2">
                     <NavLink to="/" className={({ isActive }) => `flex items-center gap-2 text-sm font-medium transition-colors ${isActive ? 'text-indigo-400' : 'text-slate-400 hover:text-slate-200'}`}>
                         <Home className="w-4 h-4" /> Dashboard
                     </NavLink>
@@ -42,8 +42,8 @@ const Navbar = () => {
                     <NavLink to="/syllabi" className={({ isActive }) => `flex items-center gap-2 text-sm font-medium transition-colors ${isActive ? 'text-indigo-400' : 'text-slate-400 hover:text-slate-200'}`}>
                         <BookOpen className="w-4 h-4" /> Syllabi
                     </NavLink>
-                    <NavLink to="/insights" className={({ isActive }) => `flex items-center gap-2 text-sm font-medium transition-colors ${isActive ? 'text-indigo-400' : 'text-slate-400 hover:text-slate-200'}`}>
-                        <BarChart2 className="w-4 h-4" /> Insights
+                    <NavLink to="/analytics" className={({ isActive }) => `flex items-center gap-2 text-sm font-medium transition-colors ${isActive ? 'text-indigo-400' : 'text-slate-400 hover:text-slate-200'}`}>
+                        <BarChart2 className="w-4 h-4" /> Analytics
                     </NavLink>
                     <NavLink to="/achievements" className={({ isActive }) => `flex items-center gap-2 text-sm font-medium transition-colors ${isActive ? 'text-indigo-400' : 'text-slate-400 hover:text-slate-200'}`}>
                         <Award className="w-4 h-4" /> Achievements

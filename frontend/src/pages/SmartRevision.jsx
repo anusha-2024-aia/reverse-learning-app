@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import React, { useState, useEffect } from 'react';
 import { RotateCcw, AlertTriangle, Calendar, Clock, CheckCircle2, Loader2, RefreshCw, BookOpen, TrendingUp, Sparkles } from 'lucide-react';
 import api from '../api/axios';

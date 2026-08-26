@@ -268,3 +268,38 @@ def get_topic_evaluation_history(topic_id: int, db: Session = Depends(get_db), c
         "history": history
     }
 
+@router.get("/evaluations/{evaluation_id}")
+def get_evaluation_detail(
+    evaluation_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """ Retrieves single evaluation detail verifying user ownership. """
+    e = db.query(models.Evaluation).filter(
+        models.Evaluation.id == evaluation_id,
+        models.Evaluation.user_id == current_user.id
+    ).first()
+
+    if not e:
+        raise HTTPException(status_code=404, detail="Evaluation not found or access denied.")
+
+    return {
+        "id": e.id,
+        "user_id": e.user_id,
+        "topic_id": e.topic_id,
+        "overall_score": e.overall_score or e.ai_score,
+        "technical_score": e.technical_score,
+        "concept_score": e.concept_score,
+        "completeness_score": e.completeness_score,
+        "examples_score": e.examples_score,
+        "relevance_score": e.relevance_score,
+        "communication_score": e.communication_score,
+        "grammar_score": e.grammar_score,
+        "vocabulary_score": e.vocabulary_score,
+        "explanation": e.explanation,
+        "attempt_number": e.attempt_number,
+        "ai_insight": e.ai_insight,
+        "ai_feedback_json": e.ai_feedback_json,
+        "created_at": e.created_at.isoformat() if e.created_at else None
+    }
+

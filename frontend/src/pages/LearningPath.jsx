@@ -13,7 +13,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 
 const LearningPath = () => {
-  const { token, user } = useContext(AuthContext);
+  const { token } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const [roadmapData, setRoadmapData] = useState(null);

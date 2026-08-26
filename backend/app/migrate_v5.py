@@ -10,13 +10,14 @@ def migrate_db():
     # 1. Ensure SQLAlchemy metadata creates all tables including roadmap_changes
     models.Base.metadata.create_all(bind=engine)
 
-    # 2. Add columns to existing SQLite tables if missing
-    db_path = "./study.db"
-    if not os.path.exists(db_path):
-        db_path = "./sql_app.db"
-        
-    if os.path.exists(db_path):
-        conn = sqlite3.connect(db_path)
+    # 2. Add columns to existing SQLite tables if running on SQLite
+    if engine.dialect.name == "sqlite":
+        db_path = "./study.db"
+        if not os.path.exists(db_path):
+            db_path = "./sql_app.db"
+            
+        if os.path.exists(db_path):
+            conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         
         # Ensure roadmap_changes table exists
@@ -72,6 +73,7 @@ def migrate_db():
                 print(f"Column migration warning for {table}.{col_name}: {e}")
                 
         # Users table
+        add_column_if_missing("users", "name", "VARCHAR")
         add_column_if_missing("users", "hours_per_day", "REAL DEFAULT 2.0")
         add_column_if_missing("users", "days_per_week", "INTEGER DEFAULT 6")
         add_column_if_missing("users", "experience_level", "VARCHAR DEFAULT 'BEGINNER'")

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useState, useEffect } from 'react';
 import api from '../api/axios';
 
@@ -55,9 +56,15 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const signup = async (username, email, password) => {
+  const signup = async (name, email, password, confirmPassword) => {
     try {
-      await api.post('/auth/register', { username, email, password });
+      await api.post('/auth/register', { 
+        name: name,
+        username: email ? email.split('@')[0] : undefined,
+        email: email, 
+        password: password,
+        confirm_password: confirmPassword 
+      });
       // Do not auto login.
       return { success: true };
     } catch (error) {

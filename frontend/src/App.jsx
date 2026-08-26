@@ -19,6 +19,7 @@ import EvaluationsHistory from './pages/EvaluationsHistory'
 import SmartRevision from './pages/SmartRevision'
 import ResumeIntelligence from './pages/ResumeIntelligence'
 import CommunicationCoach from './pages/CommunicationCoach'
+import AnalyticsPage from './pages/AnalyticsPage'
 
 function App() {
   return (
@@ -35,6 +36,7 @@ function App() {
               
               {/* Protected Routes */}
               <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
               <Route path="/resume" element={<ProtectedRoute><ResumeIntelligence /></ProtectedRoute>} />
               <Route path="/resume-intelligence" element={<ProtectedRoute><ResumeIntelligence /></ProtectedRoute>} />
               <Route path="/revision" element={<ProtectedRoute><SmartRevision /></ProtectedRoute>} />
@@ -46,7 +48,7 @@ function App() {
               <Route path="/communication-coach" element={<ProtectedRoute><CommunicationCoach /></ProtectedRoute>} />
               <Route path="/syllabi" element={<ProtectedRoute><SyllabusTracker /></ProtectedRoute>} />
               <Route path="/history" element={<ProtectedRoute><StudyHistory /></ProtectedRoute>} />
-              <Route path="/insights" element={<ProtectedRoute><InsightsDashboard /></ProtectedRoute>} />
+              <Route path="/insights" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
               <Route path="/achievements" element={<ProtectedRoute><AchievementsPage /></ProtectedRoute>} />
               <Route path="/knowledge-gaps" element={<ProtectedRoute><KnowledgeGaps /></ProtectedRoute>} />
               <Route path="/learning-path" element={<ProtectedRoute><LearningPath /></ProtectedRoute>} />

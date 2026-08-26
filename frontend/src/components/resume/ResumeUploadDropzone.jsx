@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Upload, FileText, CheckCircle2, AlertCircle, Loader2, RefreshCw } from 'lucide-react';
 import api from '../../api/axios';
 
-const ResumeUploadDropzone = ({ onUploadSuccess, isReplacement = false, activeFileName = null }) => {
+const ResumeUploadDropzone = ({ onUploadSuccess, isReplacement = false, activeFileName: _ACTIVE_FILE_NAME = null }) => {
     const [file, setFile] = useState(null);
     const [loading, setLoading] = useState(false);
     const [stage, setStage] = useState('');

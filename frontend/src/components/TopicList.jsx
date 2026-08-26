@@ -1,5 +1,4 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight, AlertCircle, Target, Zap } from 'lucide-react';
 
 const TopicList = ({ topics, type, onSelectTopic }) => {

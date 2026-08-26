@@ -220,12 +220,8 @@ def get_grammar_trend(db: Session, user_id: int, days: int = 30):
         
         daily_stats[date_str]["total"] += 1
         
-        try:
-            issues = json.loads(e.grammar_issues) if e.grammar_issues else []
-            if len(issues) == 0:
-                daily_stats[date_str]["error_free"] += 1
-        except:
-            pass # ignore parse errors
+        if e.grammar_score is not None and e.grammar_score >= 80:
+            daily_stats[date_str]["error_free"] += 1
             
     trend_data = []
     for date_str, stats in daily_stats.items():

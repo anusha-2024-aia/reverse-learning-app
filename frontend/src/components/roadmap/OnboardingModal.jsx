@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Target, Clock, Sparkles, CheckCircle2, ArrowRight, ArrowLeft, Brain, Code, Rocket } from 'lucide-react';
 
-const OnboardingModal = ({ isOpen, onClose, onComplete }) => {
+const OnboardingModal = ({ isOpen, onClose: _ON_CLOSE, onComplete }) => {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
 

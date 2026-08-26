@@ -181,7 +181,7 @@ const MockInterview = () => {
             if (activeSession.last_question?.question) {
                 speak(activeSession.last_question.question);
             }
-        } catch (err) {
+        } catch (_ERR) {
             setError("Could not resume active session.");
             setStatus('setup');
         }

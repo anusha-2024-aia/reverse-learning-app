@@ -182,7 +182,7 @@ def generate_dashboard_data(db: Session, user_id: int):
     
     return {
         "user": {
-            "name": user.username if user else "Student",
+            "name": (user.name or user.username) if user else "Student",
             "target_role": user.target_role if user else None,
             "onboarding_completed": bool(user.onboarding_completed) if user else False
         },

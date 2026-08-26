@@ -17,7 +17,7 @@ const dimensionMeta = [
   { key: 'vocabulary', label: 'Vocabulary', weight: '10%' }
 ];
 
-const CollapsibleSection = ({ title, icon: Icon, colorClass, children, defaultOpen = false }) => {
+const CollapsibleSection = ({ title, icon: IconComponent, colorClass, children, defaultOpen = false }) => {
     const [isOpen, setIsOpen] = useState(defaultOpen);
 
     return (
@@ -27,7 +27,7 @@ const CollapsibleSection = ({ title, icon: Icon, colorClass, children, defaultOp
                 className="w-full px-5 py-4 flex items-center justify-between hover:bg-slate-800/50 transition-colors focus:outline-none"
             >
                 <div className="flex items-center gap-3">
-                    <Icon className={`w-5 h-5 ${colorClass.replace('border-l-', 'text-')}`} />
+                    <IconComponent className={`w-5 h-5 ${colorClass.replace('border-l-', 'text-')}`} />
                     <h3 className="font-bold text-slate-200 tracking-wide">{title}</h3>
                 </div>
                 {isOpen ? <ChevronDown className="w-5 h-5 text-slate-400" /> : <ChevronRight className="w-5 h-5 text-slate-400" />}
@@ -62,7 +62,7 @@ const EvaluationFeedback = ({ feedback, studentExplanation, onContinue, onRetry 
 
     const summary = data.summary ?? parsedData.summary ?? "";
     const strengths = data.strengths ?? parsedData.strengths ?? [];
-    const weaknesses = data.weaknesses ?? parsedData.weaknesses ?? [];
+    const _WEAKNESSES = data.weaknesses ?? parsedData.weaknesses ?? [];
     const knowledgeGaps = data.knowledge_gaps ?? parsedData.knowledgeGaps ?? [];
     const correctVersion = data.correct_version ?? parsedData.correct_version ?? "";
     const followUp = data.follow_up_question ?? parsedData.follow_up_question ?? "";

@@ -114,3 +114,52 @@ def get_communication_summary(
 ):
     """ Returns candidate Communication Profile and AI Coach recommendations. """
     return CommunicationCoachService.get_personalized_coach_summary(db, current_user.id)
+
+@router.get("/analysis/{analysis_id}")
+def get_communication_analysis_detail(
+    analysis_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """ Fetches a specific communication analysis record verifying user ownership. """
+    record = db.query(CommunicationAnalysis).filter(
+        CommunicationAnalysis.id == analysis_id,
+        CommunicationAnalysis.user_id == current_user.id
+    ).first()
+
+    if not record:
+        raise HTTPException(status_code=404, detail="Communication analysis not found or access denied.")
+
+    grammar_improvements = []
+    if record.grammar_improvements_json:
+        try:
+            grammar_improvements = json.loads(record.grammar_improvements_json)
+        except:
+            pass
+
+    filler_breakdown = {}
+    if record.filler_words_json:
+        try:
+            filler_breakdown = json.loads(record.filler_words_json)
+        except:
+            pass
+
+    return {
+        "analysis_id": record.id,
+        "communication_score": record.communication_score,
+        "clarity_score": record.clarity_score,
+        "grammar_score": record.grammar_score,
+        "vocabulary_score": record.vocabulary_score,
+        "structure_score": record.structure_score,
+        "speaking_pace": record.speaking_pace,
+        "words_per_minute": record.words_per_minute,
+        "pause_count": record.pause_count,
+        "filler_word_count": record.filler_word_count,
+        "filler_words_breakdown": filler_breakdown,
+        "grammar_feedback": record.grammar_feedback,
+        "grammar_improvements": grammar_improvements,
+        "vocabulary_feedback": record.vocabulary_feedback,
+        "clarity_feedback": record.clarity_feedback,
+        "structure_feedback": record.structure_feedback,
+        "ai_coach_recommendation": record.ai_coach_recommendation
+    }

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import WelcomeSection from '../components/dashboard/WelcomeSection';
@@ -12,6 +13,7 @@ import QuickActions from '../components/dashboard/QuickActions';
 import CurrentFocusCard from '../components/adaptive/CurrentFocusCard';
 import SmartRevisionCard from '../components/dashboard/SmartRevisionCard';
 import ResumeIntelligenceCard from '../components/dashboard/ResumeIntelligenceCard';
+import ConnectedStudentPipeline from '../components/dashboard/ConnectedStudentPipeline';
 import { Loader2 } from 'lucide-react';
 
 
@@ -103,57 +105,72 @@ const Dashboard = () => {
     }
 
     return (
-        <div className="flex-1 overflow-y-auto bg-slate-900 text-slate-200 p-8 lg:p-12 relative">
+        <div className="flex-1 overflow-y-auto bg-slate-900 text-slate-200 p-6 lg:p-10 relative">
             <div className="max-w-7xl mx-auto relative z-10">
                 
+                {/* WELCOME SECTION */}
                 <WelcomeSection user={data.user} streak={data.summary} insight={data.aiInsight?.text} />
 
+                {/* CONNECTED STEP-BY-STEP STUDENT LEARNING PIPELINE */}
+                <ConnectedStudentPipeline 
+                    roadmapSummary={data.roadmapSummary}
+                    revisionSummary={data.revisionSummary}
+                    resumeSummary={data.resumeSummary}
+                    adaptiveRec={adaptiveRec}
+                />
 
-                {/* PHASE 5: DYNAMIC ROADMAP SUMMARY BANNER */}
-                {data.roadmapSummary && (
-                  <div className="bg-gradient-to-r from-slate-900 via-indigo-950/70 to-slate-900 border border-slate-800 rounded-2xl p-6 mb-8 shadow-xl relative overflow-hidden">
-                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="bg-indigo-600 text-white text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full">
-                            🎯 {data.roadmapSummary.target_role}
-                          </span>
-                          <span className="text-xs text-slate-400">Roadmap Progress</span>
-                        </div>
-                        <h3 className="text-xl font-black text-white">
-                          Personalized Career Roadmap ({data.roadmapSummary.progress}%)
-                        </h3>
-                        {data.roadmapSummary.latest_change && data.roadmapSummary.latest_change.reason && (
-                          <p className="text-xs text-indigo-300 font-medium flex items-center gap-1.5 pt-0.5">
-                            <span>🔄 Latest Update:</span> {data.roadmapSummary.latest_change.reason}
-                          </p>
-                        )}
-                      </div>
-
-                      <button
-                        onClick={() => window.location.href = '/learning-path'}
-                        className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-xs transition-colors shadow-lg shadow-indigo-600/30 flex items-center gap-2 flex-shrink-0"
-                      >
-                        <span>View Full Roadmap</span> →
-                      </button>
-                    </div>
-                  </div>
-                )}
-                
-                {/* PHASE 6: SMART REVISION WIDGET */}
-                {data.revisionSummary && (
-                    <SmartRevisionCard revisionSummary={data.revisionSummary} />
-                )}
-
-                {/* PHASE 8: RESUME INTELLIGENCE WIDGET */}
-                <ResumeIntelligenceCard resumeSummary={data.resumeSummary} />
-
-                <div className="mb-8">
+                {/* FEATURE MODULE BREAKDOWN GRID */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    {/* ADAPTIVE NEXT FOCUS */}
                     <CurrentFocusCard recommendation={adaptiveRec} />
+
+                    {/* SMART REVISION ENGINE */}
+                    {data.revisionSummary && (
+                        <SmartRevisionCard revisionSummary={data.revisionSummary} />
+                    )}
                 </div>
 
+                {/* RESUME INTELLIGENCE & ROADMAP DETAILS */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    {/* RESUME INTELLIGENCE */}
+                    <ResumeIntelligenceCard resumeSummary={data.resumeSummary} />
 
-                
+                    {/* ROADMAP SUMMARY */}
+                    {data.roadmapSummary && (
+                        <div className="bg-gradient-to-br from-slate-800 to-indigo-950/50 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden flex flex-col justify-between">
+                            <div>
+                                <div className="flex items-center justify-between mb-3">
+                                    <span className="bg-indigo-600 text-white text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full">
+                                        🎯 {data.roadmapSummary.target_role}
+                                    </span>
+                                    <span className="text-xs text-slate-400 font-bold">
+                                        {data.roadmapSummary.progress}% Complete
+                                    </span>
+                                </div>
+                                <h3 className="text-xl font-black text-white mb-2">
+                                    Career Study Roadmap
+                                </h3>
+                                <p className="text-xs text-slate-300 leading-relaxed mb-4">
+                                    Your personalized curriculum milestone path for becoming a {data.roadmapSummary.target_role}.
+                                </p>
+                                {data.roadmapSummary.latest_change?.reason && (
+                                    <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-700/60 text-xs text-indigo-300">
+                                        <span>🔄 Update: </span> {data.roadmapSummary.latest_change.reason}
+                                    </div>
+                                )}
+                            </div>
+
+                            <button
+                                onClick={() => window.location.href = '/learning-path'}
+                                className="mt-4 w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-xs transition-all shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2"
+                            >
+                                <span>View Full Career Roadmap</span> →
+                            </button>
+                        </div>
+                    )}
+                </div>
+
+                {/* METRICS & OVERALL SCORE */}
                 <OverallScoreCard score={data.summary?.overallScore} />
                 
                 <PerformanceCards summary={data.summary} />
@@ -178,7 +195,6 @@ const Dashboard = () => {
                     </div>
                 </div>
 
-                
                 <QuickActions />
 
             </div>

@@ -2,13 +2,13 @@ import React from 'react';
 import { BookOpen, Target, BrainCircuit, Activity } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-const QuickActionBtn = ({ icon: Icon, label, onClick }) => (
+const QuickActionBtn = ({ icon: IconComponent, label, onClick }) => (
     <button 
         onClick={onClick}
         className="flex items-center gap-3 p-4 bg-slate-800/80 hover:bg-slate-700/80 rounded-xl border border-slate-700 hover:border-indigo-500/50 transition-all shadow-md group w-full text-left"
     >
         <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg group-hover:bg-indigo-500 group-hover:text-white transition-colors">
-            <Icon className="w-5 h-5" />
+            <IconComponent className="w-5 h-5" />
         </div>
         <span className="font-medium text-slate-200 group-hover:text-white transition-colors">{label}</span>
     </button>

@@ -44,9 +44,15 @@ def get_curriculum(curriculum_id: int, db: Session = Depends(get_db)):
         "topics": topic_list
     }
 
+from app.auth import get_current_user
+from app import models
+
 @router.get("/curricula/{curriculum_id}/progress")
-def get_curriculum_progress(curriculum_id: int, db: Session = Depends(get_db)):
-    user_id = 1 # Mock auth
+def get_curriculum_progress(
+    curriculum_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
     c = db.query(Curriculum).filter(Curriculum.id == curriculum_id).first()
     if not c:
         raise HTTPException(status_code=404, detail="Curriculum not found")
@@ -55,7 +61,7 @@ def get_curriculum_progress(curriculum_id: int, db: Session = Depends(get_db)):
     topic_progress = []
     
     for t in topics:
-        evals = db.query(Evaluation).filter(Evaluation.topic_id == t.id, Evaluation.user_id == user_id).all()
+        evals = db.query(Evaluation).filter(Evaluation.topic_id == t.id, Evaluation.user_id == current_user.id).all()
         best_score = max([e.ai_score for e in evals if e.ai_score is not None], default=None) if evals else None
         attempts_count = len(evals)
         last_attempt = max([e.created_at for e in evals], default=None) if evals else None

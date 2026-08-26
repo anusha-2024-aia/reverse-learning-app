@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 import { Sliders, AlertTriangle, Check, X } from 'lucide-react';
 
 const PreferencesModal = ({ isOpen, onClose, currentPreferences = {}, onSave }) => {
-  if (!isOpen) return null;
-
   const [targetRole, setTargetRole] = useState(currentPreferences.target_role || "Full Stack Developer");
   const [hoursPerDay, setHoursPerDay] = useState(currentPreferences.hours_per_day || 2.0);
   const [daysPerWeek, setDaysPerWeek] = useState(currentPreferences.days_per_week || 6);
   const [experienceLevel, setExperienceLevel] = useState(currentPreferences.experience_level || "BEGINNER");
   const [careerGoal, setCareerGoal] = useState(currentPreferences.career_goal || "");
   const [loading, setLoading] = useState(false);
+
+  if (!isOpen) return null;
 
   const isRoleChanged = currentPreferences.target_role && currentPreferences.target_role.toLowerCase() !== targetRole.toLowerCase();
 

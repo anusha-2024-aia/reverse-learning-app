@@ -12,9 +12,33 @@ from app import models
 from app.database import get_db
 
 # Configuration
-SECRET_KEY = os.getenv("SECRET_KEY", "your-super-secret-key-for-development")
+SECRET_KEY = os.getenv("JWT_SECRET") or os.getenv("SECRET_KEY", "reverselearn_secret_2026")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+# Parse JWT_EXPIRES_IN (e.g. '1d', '24h', '60m' or integer minutes)
+def _get_expiration_minutes() -> int:
+    env_val = os.getenv("JWT_EXPIRES_IN", "1d").strip().lower()
+    if env_val.endswith("d"):
+        try:
+            return int(env_val[:-1]) * 24 * 60
+        except ValueError:
+            pass
+    elif env_val.endswith("h"):
+        try:
+            return int(env_val[:-1]) * 60
+        except ValueError:
+            pass
+    elif env_val.endswith("m"):
+        try:
+            return int(env_val[:-1])
+        except ValueError:
+            pass
+    try:
+        return int(env_val)
+    except ValueError:
+        return 1440 # Default to 1 day
+
+ACCESS_TOKEN_EXPIRE_MINUTES = _get_expiration_minutes()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
 
@@ -49,13 +73,20 @@ def get_current_user(
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
+        sub = payload.get("sub")
+        if sub is None:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
         
-    user = db.query(models.User).filter(models.User.username == username).first()
+    sub_str = str(sub)
+    if sub_str.isdigit():
+        user = db.query(models.User).filter(models.User.id == int(sub_str)).first()
+    else:
+        user = db.query(models.User).filter(
+            (models.User.username == sub_str) | (models.User.email == sub_str)
+        ).first()
+
     if user is None:
         raise credentials_exception
     return user

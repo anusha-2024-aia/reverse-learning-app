@@ -1,7 +1,7 @@
 import React from 'react';
 import { Lock, CheckCircle, Target, ArrowRight } from 'lucide-react';
 
-const SyllabusTracker = ({ currentTopic, onSelectTopic }) => {
+const SyllabusTracker = ({ currentTopic: _CURRENT_TOPIC, onSelectTopic }) => {
     // Mock syllabus data - Reset to starting state
     const topics = [
         { id: 1, name: 'Core Foundations', status: 'active' },

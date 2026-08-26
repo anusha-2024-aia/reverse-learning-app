@@ -14,7 +14,7 @@ const CommunicationCoach = () => {
     const [error, setError] = useState(null);
     const [progressData, setProgressData] = useState(null);
     const [summaryData, setSummaryData] = useState(null);
-    const [history, setHistory] = useState([]);
+    const [_history, setHistory] = useState([]);
 
     useEffect(() => {
         const fetchData = async () => {

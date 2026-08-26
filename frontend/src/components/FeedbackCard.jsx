@@ -11,9 +11,9 @@ import {
     RotateCcw
 } from 'lucide-react';
 
-const CardHeader = ({ icon: Icon, title, iconColor = "text-gray-400" }) => (
+const CardHeader = ({ icon: IconComponent, title, iconColor = "text-gray-400" }) => (
     <div className="flex items-center gap-2 mb-4">
-        <Icon className={`w-4 h-4 ${iconColor}`} />
+        <IconComponent className={`w-4 h-4 ${iconColor}`} />
         <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">{title}</h3>
     </div>
 );

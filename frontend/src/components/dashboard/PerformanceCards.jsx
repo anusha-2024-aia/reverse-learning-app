@@ -1,12 +1,12 @@
 import React from 'react';
 import { BrainCircuit, MessageSquare, Target, Flame } from 'lucide-react';
 
-const PerformanceCard = ({ title, score, icon: Icon, description, metric, metricLabel }) => (
+const PerformanceCard = ({ title, score, icon: IconComponent, description, metric, metricLabel: _METRIC_LABEL }) => (
     <div className="bg-slate-800/80 p-6 rounded-2xl border border-slate-700 hover:border-indigo-500/30 transition-all flex flex-col justify-between h-full group">
         <div>
             <div className="flex items-center gap-3 mb-4">
                 <div className="p-3 bg-slate-900/80 rounded-xl text-indigo-400 group-hover:scale-110 transition-transform">
-                    <Icon className="w-6 h-6" />
+                    <IconComponent className="w-6 h-6" />
                 </div>
                 <h3 className="text-lg font-bold text-slate-200">{title}</h3>
             </div>

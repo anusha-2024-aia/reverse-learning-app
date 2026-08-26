@@ -28,15 +28,32 @@ class AnswerQuestionRequest(BaseModel):
     answer: str
     is_final: Optional[bool] = False
 
+import uuid
+MAX_RESUME_SIZE = 10 * 1024 * 1024 # 10MB
+
 @router.post("/resume/upload")
 async def upload_resume(file: UploadFile = File(...), db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """ Uploads and parses a resume. """
-    filename = file.filename.lower()
-    temp_path = f"./uploads/user_{current_user.id}_{filename}"
-    os.makedirs("./uploads", exist_ok=True)
+    raw_filename = os.path.basename(file.filename or "resume.pdf")
+    ext = os.path.splitext(raw_filename)[1].lower().replace('.', '')
+
+    if ext not in ['pdf', 'docx']:
+        raise HTTPException(status_code=400, detail="Invalid file type. Only PDF and DOCX files are allowed.")
+
+    content = await file.read()
+    if len(content) > MAX_RESUME_SIZE:
+        raise HTTPException(status_code=400, detail="File size exceeds maximum allowed limit (10 MB).")
+
+    if len(content) < 50:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty or corrupted.")
+
+    upload_dir = "./uploads"
+    os.makedirs(upload_dir, exist_ok=True)
+    clean_name = "".join(c for c in raw_filename if c.isalnum() or c in "._-")
+    temp_path = os.path.abspath(os.path.join(upload_dir, f"user_{current_user.id}_{uuid.uuid4().hex}_{clean_name}"))
+
     try:
         with open(temp_path, "wb") as f:
-            content = await file.read()
             f.write(content)
             
         parsed_data = await ResumeParser.parse_resume(temp_path)
@@ -55,8 +72,10 @@ async def upload_resume(file: UploadFile = File(...), db: Session = Depends(get_
         db.refresh(resume)
         
         return {"message": "Resume uploaded successfully.", "resume_id": resume.id, "parsed_data": parsed_data}
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Unable to process uploaded resume file.")
 
 @router.post("/start")
 async def start_interview(

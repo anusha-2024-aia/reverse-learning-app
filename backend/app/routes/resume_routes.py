@@ -9,6 +9,8 @@ from app.services.resume_intelligence_service import ResumeIntelligenceService
 
 router = APIRouter()
 
+import uuid
+
 MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024 # 10 MB
 
 @router.post("/resume/upload")
@@ -21,11 +23,11 @@ async def upload_resume(
     Uploads PDF or DOCX resume, validates format and size, extracts text,
     structures JSON via Gemini, and generates personalized interview questions.
     """
-    filename = file.filename
-    ext = os.path.splitext(filename)[1].lower().replace('.', '')
+    raw_filename = os.path.basename(file.filename or "resume.pdf")
+    ext = os.path.splitext(raw_filename)[1].lower().replace('.', '')
 
     if ext not in ['pdf', 'docx']:
-        raise HTTPException(status_code=400, detail="Invalid file type. Please upload a PDF or DOCX resume.")
+        raise HTTPException(status_code=400, detail="Invalid file type. Only PDF and DOCX files are allowed.")
 
     contents = await file.read()
     if len(contents) > MAX_FILE_SIZE_BYTES:
@@ -37,7 +39,9 @@ async def upload_resume(
     # Save to upload folder safely
     upload_dir = "./uploads/resumes"
     os.makedirs(upload_dir, exist_ok=True)
-    file_path = os.path.join(upload_dir, f"user_{current_user.id}_{int(os.path.getmtime('./uploads') if os.path.exists('./uploads') else 0)}_{filename}")
+    clean_name = "".join(c for c in raw_filename if c.isalnum() or c in "._-")
+    safe_filename = f"user_{current_user.id}_{uuid.uuid4().hex}_{clean_name}"
+    file_path = os.path.abspath(os.path.join(upload_dir, safe_filename))
 
     with open(file_path, "wb") as f:
         f.write(contents)
@@ -58,18 +62,13 @@ async def upload_resume(
     try:
         structured_data = await ResumeIntelligenceService.analyze_and_structure_resume(extracted_text)
     except Exception as ai_err:
-        structured_data = {
-            "summary": "Extracted candidate profile",
-            "skills": ["General Engineering"],
-            "projects": [],
-            "experience": [],
-            "education": []
-        }
+        print(f"Error in resume analysis (using rule-based parser): {ai_err}")
+        structured_data = ResumeIntelligenceService.fallback_rule_based_parse(extracted_text)
 
     # Save new active Resume record
     new_resume = models.Resume(
         user_id=current_user.id,
-        file_name=filename,
+        file_name=raw_filename,
         file_type=ext,
         file_path=file_path,
         extracted_text=extracted_text,
@@ -95,7 +94,7 @@ async def upload_resume(
     return {
         "message": "Resume uploaded and analyzed successfully",
         "resume_id": new_resume.id,
-        "file_name": filename,
+        "file_name": raw_filename,
         "analysis_summary": structured_data,
         "questions_generated_count": len(generated_questions)
     }
@@ -148,13 +147,58 @@ def get_active_resume(
         "file_type": resume.file_type,
         "created_at": resume.created_at.isoformat() if resume.created_at else None,
         "analysis_summary": structured,
+        "questions": q_list,
+        "questions_count": len(q_list),
+        "last_interview_score": last_interview.overall_score if last_interview else None
+    }
+
+@router.get("/resume/{resume_id}")
+def get_resume_by_id(
+    resume_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Returns specific resume details verifying user ownership.
+    """
+    resume = db.query(models.Resume).filter(
+        models.Resume.id == resume_id,
+        models.Resume.user_id == current_user.id
+    ).first()
+
+    if not resume:
+        raise HTTPException(status_code=404, detail="Resume not found or access denied.")
+
+    try:
+        structured = json.loads(resume.analysis_summary_json) if resume.analysis_summary_json else {}
+    except:
+        structured = {}
+
+    questions = db.query(models.ResumeQuestion).filter(
+        models.ResumeQuestion.resume_id == resume.id,
+        models.ResumeQuestion.user_id == current_user.id
+    ).all()
+
+    q_list = [{
+        "id": q.id,
+        "category": q.category,
+        "question": q.question_text,
+        "difficulty": q.difficulty,
+        "source": q.target_project_or_skill,
+        "target": q.target_project_or_skill
+    } for q in questions]
+
+    return {
+        "resume_id": resume.id,
+        "file_name": resume.file_name,
+        "file_type": resume.file_type,
+        "created_at": resume.created_at.isoformat() if resume.created_at else None,
+        "analysis_summary": structured,
         "skills": json.loads(resume.parsed_skills or "[]"),
         "projects": json.loads(resume.parsed_projects or "[]"),
         "experience": json.loads(resume.parsed_experience or "[]"),
         "education": json.loads(resume.parsed_education or "[]"),
-        "questions": q_list,
-        "questions_count": len(q_list),
-        "last_interview_score": last_interview.overall_score if last_interview else None
+        "questions": q_list
     }
 
 @router.post("/resume/analyze")

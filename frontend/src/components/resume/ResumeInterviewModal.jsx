@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Send, Loader2, Award, CheckCircle2, AlertTriangle, Sparkles, ArrowRight, Mic, MicOff, Type, Headphones } from 'lucide-react';
 import api from '../../api/axios';
 
-const ResumeInterviewModal = ({ resumeId, initialQuestions = [], onClose, onComplete }) => {
+const ResumeInterviewModal = ({ resumeId, initialQuestions: _INITIAL_QUESTIONS = [], onClose, onComplete }) => {
     const [step, setStep] = useState('interview'); // 'interview', 'evaluating', 'report'
     const [interviewId, setInterviewId] = useState(null);
     const [currentQuestion, setCurrentQuestion] = useState(null);

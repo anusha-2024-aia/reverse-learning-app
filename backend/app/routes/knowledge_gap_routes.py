@@ -2,21 +2,23 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from app.database import get_db
-from app.models import Evaluation, Topic
+from app.auth import get_current_user
+from app.models import User, Evaluation, Topic
 import json
 
 router = APIRouter()
 
-USER_ID = 1 # Authenticated user identity
-
 @router.get("/")
-def get_weakest_topic_knowledge_gap(db: Session = Depends(get_db)):
+def get_weakest_topic_knowledge_gap(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     """
-    Returns the single weakest topic based on the latest evaluation score.
+    Returns the single weakest topic based on the latest evaluation score for the authenticated user.
     """
     # Get all distinct topics the user has evaluated
     evaluations = db.query(Evaluation).filter(
-        Evaluation.user_id == USER_ID,
+        Evaluation.user_id == current_user.id,
         Evaluation.ai_score != None
     ).order_by(desc(Evaluation.created_at)).all()
     
