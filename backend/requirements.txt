@@ -9,6 +9,7 @@ bcrypt
 email-validator
 SQLAlchemy
 psycopg[binary]
+psycopg2-binary
 pymongo
 openai
 PyMuPDF
