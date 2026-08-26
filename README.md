@@ -162,10 +162,10 @@ The **Reverse Learning App** turns the learning paradigm upside down:
      +------------------------------+------------------------------+
      |                              |                              |
      v                              v                              v
-+---------------------+       +-------------------+       +-----------------------+
-| PostgreSQL Database |       |  Google Gemini AI |       | Resume Document Parser|
-|  (SQLAlchemy ORM)   |       |  Evaluation Engine|       | (PyMuPDF & docx)      |
-+---------------------+       +-------------------+       +-----------------------+
++------------------+       +-------------------+       +-----------------------+
+|  SQLite Database |       |  Google Gemini AI |       | Resume Document Parser|
+| (SQLAlchemy ORM) |       |  Evaluation Engine|       | (PyMuPDF & docx)      |
++------------------+       +-------------------+       +-----------------------+
      |                              |                              |
      +------------------------------+------------------------------+
                                     |
@@ -260,7 +260,7 @@ The application uses SQLAlchemy ORM backed by SQLite (with production support fo
 ### Backend
 - **Framework:** Python 3.9+ & FastAPI (Async API Engine)
 - **Server:** Uvicorn (ASGI)
-- **Database Engine:** PostgreSQL (SQLAlchemy ORM + Psycopg driver)
+- **Database Engine:** SQLite (SQLAlchemy ORM)
 - **Authentication:** JWT (`python-jose`) & Password Hashing (`passlib[bcrypt]`)
 
 ### AI & Document Parsing
@@ -333,8 +333,8 @@ Create a `.env` file inside the `backend/` directory based on `.env.example`:
 # Google Gemini AI API Key (Required)
 GEMINI_API_KEY=your_gemini_api_key_here
 
-# Database Connection (PostgreSQL default)
-DATABASE_URL=postgresql+psycopg://username:password@host:5432/database_name
+# Database Connection (SQLite default)
+DATABASE_URL=sqlite:///./study.db
 
 # JWT Security Settings
 JWT_SECRET=your_super_secret_jwt_key_here
