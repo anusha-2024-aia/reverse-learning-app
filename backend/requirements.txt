@@ -14,3 +14,4 @@ PyMuPDF
 python-docx
 pytest
 httpx
+psycopg2-binary

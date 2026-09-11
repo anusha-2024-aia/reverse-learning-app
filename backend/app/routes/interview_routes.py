@@ -6,6 +6,7 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.auth import get_current_user
+from app.rate_limiter import rate_limit_authenticated
 from app.models import User, Interview, InterviewQuestion, InterviewAnswer, Resume
 from app.services.resume_parser import ResumeParser
 from app.services.activity_service import ActivityService
@@ -13,6 +14,9 @@ from app.services.adaptive_interview_service import AdaptiveInterviewService
 from app.services.communication_coach_service import CommunicationCoachService
 
 router = APIRouter(prefix="/interview")
+
+interview_rate_limit = rate_limit_authenticated(default_limit=5, window_seconds=60, env_var_name="INTERVIEW_RATE_LIMIT")
+doc_rate_limit = rate_limit_authenticated(default_limit=3, window_seconds=60, env_var_name="DOCUMENT_RATE_LIMIT")
 
 class StartSessionRequest(BaseModel):
     target_role: Optional[str] = "Software Engineer"
@@ -32,7 +36,7 @@ import uuid
 MAX_RESUME_SIZE = 10 * 1024 * 1024 # 10MB
 
 @router.post("/resume/upload")
-async def upload_resume(file: UploadFile = File(...), db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+async def upload_resume(file: UploadFile = File(...), db: Session = Depends(get_db), current_user: User = Depends(doc_rate_limit)):
     """ Uploads and parses a resume. """
     raw_filename = os.path.basename(file.filename or "resume.pdf")
     ext = os.path.splitext(raw_filename)[1].lower().replace('.', '')
@@ -86,7 +90,7 @@ async def start_interview(
     question_count: Optional[int] = None,
     resume_id: Optional[int] = None,
     db: Session = Depends(get_db), 
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(interview_rate_limit)
 ):
     """ Starts a new personalized AI Adaptive Mock Interview. """
     data = payload or {}
@@ -167,7 +171,7 @@ async def start_interview(
 async def process_answer(
     payload: dict = Body(...),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(interview_rate_limit)
 ):
     """ Processes candidate answer, evaluates performance, dynamically scales difficulty, and generates next question or report. """
     interview_id = payload.get("interview_id")

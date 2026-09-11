@@ -3,6 +3,8 @@ import os
 import unittest
 import time
 
+os.environ["TESTING"] = "True"
+
 # Add backend root to sys.path
 backend_dir = os.path.abspath(os.path.dirname(__file__))
 if backend_dir not in sys.path:
@@ -10,8 +12,13 @@ if backend_dir not in sys.path:
 
 from tests.test_unit_engines import TestUnitEngines
 from tests.test_auth_and_security import TestAuthAndSecurity
+from tests.test_jwt_secret_security import TestJWTSecretSecurity
 from tests.test_ai_and_db_resiliency import TestAIAndDBResiliency
 from tests.test_e2e_user_journey import TestE2EUserJourney
+from tests.test_api import TestMockedAPI
+from tests.test_database_config import TestDatabaseConfig
+from tests.test_rate_limiter import TestRateLimiter
+from tests.test_error_handling_and_logging import TestErrorHandlingAndLogging
 
 def run_master_test_suite():
     print("==================================================")
@@ -22,10 +29,15 @@ def run_master_test_suite():
     loader = unittest.TestLoader()
     suite = unittest.TestSuite()
 
+    suite.addTests(loader.loadTestsFromTestCase(TestMockedAPI))
+    suite.addTests(loader.loadTestsFromTestCase(TestDatabaseConfig))
     suite.addTests(loader.loadTestsFromTestCase(TestUnitEngines))
     suite.addTests(loader.loadTestsFromTestCase(TestAuthAndSecurity))
+    suite.addTests(loader.loadTestsFromTestCase(TestJWTSecretSecurity))
     suite.addTests(loader.loadTestsFromTestCase(TestAIAndDBResiliency))
     suite.addTests(loader.loadTestsFromTestCase(TestE2EUserJourney))
+    suite.addTests(loader.loadTestsFromTestCase(TestRateLimiter))
+    suite.addTests(loader.loadTestsFromTestCase(TestErrorHandlingAndLogging))
 
     runner = unittest.TextTestRunner(verbosity=2)
     result = runner.run(suite)
@@ -48,6 +60,7 @@ def run_master_test_suite():
     print("\n--- SECURITY & SYSTEM RESILIENCY TEST MATRIX ---")
     print("| Test Area              | Expected Result       | Status |")
     print("|------------------------|-----------------------|--------|")
+    print("| API Health Check       | Status 200 (ok)       |   PASS |")
     print("| Password Hashing       | Bcrypt stored         |   PASS |")
     print("| JWT Validation         | 401 Unauthorized      |   PASS |")
     print("| Bidirectional Isolation| Access Denied (404)   |   PASS |")

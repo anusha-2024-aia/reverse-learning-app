@@ -4,11 +4,14 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr, validator
 from app.database import get_db
 from app import models, auth
+from app.rate_limiter import rate_limit_ip
 
 router = APIRouter(
     prefix="/auth",
     tags=["Authentication"]
 )
+
+auth_rate_limit = rate_limit_ip(default_limit=10, window_seconds=60, env_var_name="AUTH_RATE_LIMIT")
 
 class UserCreate(BaseModel):
     name: Optional[str] = None
@@ -42,7 +45,7 @@ class UserResponse(BaseModel):
     class Config:
         from_attributes = True
 
-@router.post("/register")
+@router.post("/register", dependencies=[Depends(auth_rate_limit)])
 def register(user: UserCreate, db: Session = Depends(get_db)):
     display_name = (user.name or user.username or user.email.split('@')[0]).strip()
     username = (user.username or user.email.split('@')[0]).strip()
@@ -90,7 +93,7 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
         "access_token": access_token
     }
 
-@router.post("/login", response_model=Token)
+@router.post("/login", response_model=Token, dependencies=[Depends(auth_rate_limit)])
 def login(user_credentials: UserLogin, db: Session = Depends(get_db)):
     identifier = (user_credentials.email or user_credentials.username_or_email or "").strip().lower()
     if not identifier or not user_credentials.password:

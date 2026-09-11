@@ -5,10 +5,13 @@ from typing import Optional
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.auth import get_current_user
+from app.rate_limiter import rate_limit_authenticated
 from app.models import User, CommunicationAnalysis
 from app.services.communication_coach_service import CommunicationCoachService
 
 router = APIRouter(prefix="/communication")
+
+comm_rate_limit = rate_limit_authenticated(default_limit=5, window_seconds=60, env_var_name="COMMUNICATION_RATE_LIMIT")
 
 class SingleAnalysisRequest(BaseModel):
     transcript: str
@@ -21,7 +24,7 @@ class SingleAnalysisRequest(BaseModel):
 async def analyze_communication(
     payload: SingleAnalysisRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(comm_rate_limit)
 ):
     """ Analyzes voice transcript communication metrics and stores results. """
     if not payload.transcript or not payload.transcript.strip():

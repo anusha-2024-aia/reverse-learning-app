@@ -98,6 +98,13 @@ def seed_topics():
     finally:
         db.close()
 
+import time
+import uuid
+import os
+from fastapi import Request, Response
+from app.core.logging_config import logger
+from app.core.error_handlers import register_exception_handlers
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     models.Base.metadata.create_all(bind=engine)
@@ -105,13 +112,14 @@ async def lifespan(app: FastAPI):
         from app.migrate_v5 import migrate_db
         migrate_db()
     except Exception as err:
-        print(f"Migration error in lifespan: {err}")
+        logger.error(f"Migration error in lifespan: {err}")
     seed_topics()
     yield
 
 app = FastAPI(title="Reverse Learning API", lifespan=lifespan)
 
-import os
+# Register Centralized Exception Handlers
+register_exception_handlers(app)
 
 # Configure CORS
 origins = [
@@ -133,11 +141,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from fastapi import Request, Response
-
 @app.middleware("http")
-async def add_security_headers(request: Request, call_next):
+async def request_logging_middleware(request: Request, call_next):
+    request_id = f"req_{uuid.uuid4().hex[:12]}"
+    request.state.request_id = request_id
+    start_time = time.time()
+
     response: Response = await call_next(request)
+
+    duration = round(time.time() - start_time, 4)
+    user_str = ""
+    if hasattr(request.state, "user") and getattr(request.state.user, "id", None):
+        user_str = f" user_id={request.state.user.id}"
+
+    logger.info(
+        f"request_id={request_id}{user_str} method={request.method} path={request.url.path} "
+        f"status={response.status_code} duration={duration:.2f}s"
+    )
+
+    response.headers["X-Request-ID"] = request_id
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
@@ -168,6 +190,11 @@ app.include_router(communication_routes.router, prefix="/api", tags=["Communicat
 @app.get("/")
 async def root():
     return {"message": "Welcome to the Reverse Learning API"}
+
+@app.get("/health")
+@app.get("/api/health")
+async def health_check():
+    return {"status": "ok"}
 
 if __name__ == "__main__":
     import uvicorn

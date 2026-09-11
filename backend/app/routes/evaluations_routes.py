@@ -11,9 +11,12 @@ from app.services.activity_service import ActivityService
 from app.services.roadmap_service import RoadmapService
 from app.services.smart_revision_service import SmartRevisionService
 from app.auth import get_current_user
+from app.rate_limiter import rate_limit_authenticated
 from typing import List, Optional
 
 router = APIRouter()
+
+eval_rate_limit = rate_limit_authenticated(default_limit=5, window_seconds=60, env_var_name="AI_EVALUATION_RATE_LIMIT")
 
 
 def extract_score(dim_dict):
@@ -31,7 +34,7 @@ def extract_feedback(dim_dict):
     return str(dim_dict) if dim_dict else ""
 
 @router.post("/evaluate")
-async def evaluate_user_explanation(evaluation: schemas.EvaluationCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+async def evaluate_user_explanation(evaluation: schemas.EvaluationCreate, db: Session = Depends(get_db), current_user: models.User = Depends(eval_rate_limit)):
     # Verify topic exists
     topic = db.query(models.Topic).filter(models.Topic.id == evaluation.topic_id).first()
     if not topic:

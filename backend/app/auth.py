@@ -12,7 +12,11 @@ from app import models
 from app.database import get_db
 
 # Configuration
-SECRET_KEY = os.getenv("JWT_SECRET") or os.getenv("SECRET_KEY", "reverselearn_secret_2026")
+SECRET_KEY = (os.getenv("JWT_SECRET") or os.getenv("SECRET_KEY") or "").strip()
+if not SECRET_KEY:
+    raise RuntimeError(
+        "JWT secret is not configured. Set the JWT_SECRET environment variable before starting the application."
+    )
 ALGORITHM = "HS256"
 
 # Parse JWT_EXPIRES_IN (e.g. '1d', '24h', '60m' or integer minutes)

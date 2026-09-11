@@ -4,10 +4,15 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Any
 from app.database import get_db
 from app.auth import get_current_user
+from app.rate_limiter import rate_limit_authenticated
 from app.models import User, Roadmap, RoadmapItem, Topic, Evaluation
 from app.services.roadmap_service import RoadmapService
 
+from app.core.logging_config import logger
+
 router = APIRouter(prefix="/roadmap", tags=["Roadmap"])
+
+roadmap_rate_limit = rate_limit_authenticated(default_limit=3, window_seconds=60, env_var_name="ROADMAP_RATE_LIMIT")
 
 class OnboardingRequest(BaseModel):
     target_role: str = Field(..., example="Full Stack Developer")
@@ -27,7 +32,7 @@ class PreferencesUpdateRequest(BaseModel):
     preferred_areas: Optional[List[str]] = None
 
 @router.post("/onboarding")
-async def process_onboarding(data: OnboardingRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+async def process_onboarding(data: OnboardingRequest, db: Session = Depends(get_db), current_user: User = Depends(roadmap_rate_limit)):
     """
     Saves onboarding choices (Role, Skills, Experience, Goal, Time, Preferences)
     and generates the student's initial personalized AI roadmap.
@@ -37,8 +42,8 @@ async def process_onboarding(data: OnboardingRequest, db: Session = Depends(get_
         result = await RoadmapService.generate_initial_roadmap(db, current_user, onboarding_dict)
         return result
     except Exception as e:
-        print(f"Onboarding error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Onboarding error: {e}")
+        raise HTTPException(status_code=500, detail="Unable to process onboarding right now.")
 
 @router.get("/mine")
 def get_my_roadmap(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
@@ -50,8 +55,8 @@ def get_my_roadmap(db: Session = Depends(get_db), current_user: User = Depends(g
         result = RoadmapService.get_my_roadmap(db, current_user.id)
         return result
     except Exception as e:
-        print(f"Error fetching roadmap: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error fetching roadmap: {e}")
+        raise HTTPException(status_code=500, detail="Unable to fetch roadmap right now.")
 
 @router.post("/generate")
 async def generate_roadmap(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
@@ -71,8 +76,8 @@ async def generate_roadmap(db: Session = Depends(get_db), current_user: User = D
         result = await RoadmapService.generate_initial_roadmap(db, current_user, onboarding_dict)
         return result
     except Exception as e:
-        print(f"Error generating roadmap: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error generating roadmap: {e}")
+        raise HTTPException(status_code=500, detail="Unable to generate roadmap right now.")
 
 @router.post("/recalculate")
 def recalculate_roadmap(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
@@ -88,76 +93,51 @@ def recalculate_roadmap(db: Session = Depends(get_db), current_user: User = Depe
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error recalculating roadmap: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error recalculating roadmap: {e}")
+        raise HTTPException(status_code=500, detail="Unable to recalculate roadmap right now.")
 
 @router.get("/current-focus")
 def get_current_focus(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """
     Gets the current focus topic and next best action.
     """
-    result = RoadmapService.get_current_focus(db, current_user.id)
-    if not result:
-        return {"current_focus": None}
-    return result
+    return RoadmapService.get_current_focus(db, current_user.id)
 
-@router.get("/daily-plan")
-def get_daily_plan(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+@router.get("/summary")
+def get_roadmap_summary(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """
-    Gets today's structured learning plan based on available daily hours.
+    Returns lightweight high-level roadmap metrics for dashboard/home widgets.
     """
-    roadmap_data = RoadmapService.get_my_roadmap(db, current_user.id)
-    if not roadmap_data or not roadmap_data.get("daily_plan"):
-        return {"daily_plan": None}
-    return {"daily_plan": roadmap_data.get("daily_plan")}
+    return RoadmapService.get_roadmap_summary(db, current_user.id)
 
-@router.get("/history")
-def get_roadmap_history(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+@router.get("/items/{item_id}")
+def get_roadmap_item_detail(item_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """
-    Gets change timeline of roadmap adaptations.
+    Returns details for a single roadmap item verifying ownership.
     """
-    history = RoadmapService.get_roadmap_history(db, current_user.id)
-    return {"history": history}
+    item = db.query(RoadmapItem).join(Roadmap).filter(
+        RoadmapItem.id == item_id,
+        Roadmap.user_id == current_user.id
+    ).first()
 
-@router.get("/topic/{topic_id}")
-def get_roadmap_topic_detail(topic_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """
-    Gets detailed evaluation history and prerequisite status for a specific topic item.
-    """
-    item = db.query(RoadmapItem).filter(RoadmapItem.id == topic_id, RoadmapItem.user_id == current_user.id).first()
     if not item:
-        raise HTTPException(status_code=404, detail="Roadmap topic item not found")
-
-    evals = []
-    if item.topic_id:
-        evals = db.query(Evaluation).filter(Evaluation.user_id == current_user.id, Evaluation.topic_id == item.topic_id).order_by(Evaluation.created_at.desc()).all()
+        raise HTTPException(status_code=404, detail="Roadmap item not found or access denied.")
 
     return {
-        "item": {
-            "id": item.id,
-            "topic_name": item.topic_name,
-            "category": item.category,
-            "description": item.description,
-            "importance": item.importance,
-            "difficulty": item.difficulty,
-            "mastery_score": item.mastery_score,
-            "status": item.status,
-            "reason": item.reason,
-            "estimated_hours": item.estimated_hours,
-            "topic_id": item.topic_id
-        },
-        "evaluations_count": len(evals),
-        "recent_evaluations": [
-            {
-                "id": e.id,
-                "overall_score": e.overall_score or e.ai_score,
-                "created_at": e.created_at.isoformat() if e.created_at else None
-            }
-            for e in evals[:5]
-        ]
+        "id": item.id,
+        "topic_id": item.topic_id,
+        "title": item.title,
+        "category": item.category,
+        "sequence_order": item.sequence_order,
+        "estimated_hours": item.estimated_hours,
+        "status": item.status,
+        "priority_score": item.priority_score,
+        "mastery_level": item.mastery_level,
+        "unlock_requirements": item.unlock_requirements,
+        "reason_added": item.reason_added
     }
 
-@router.patch("/preferences")
+@router.put("/preferences")
 async def update_preferences(data: PreferencesUpdateRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """
     Updates target role, hours per day, career goal, or preferences.
@@ -168,5 +148,5 @@ async def update_preferences(data: PreferencesUpdateRequest, db: Session = Depen
         result = await RoadmapService.update_preferences(db, current_user.id, prefs_dict)
         return result
     except Exception as e:
-        print(f"Error updating preferences: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error updating preferences: {e}")
+        raise HTTPException(status_code=500, detail="Unable to update preferences right now.")

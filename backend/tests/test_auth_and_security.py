@@ -57,6 +57,18 @@ class TestAuthAndSecurity(unittest.TestCase):
         self.db.close()
 
     # -------------------------------------------------------------
+    # 0. Health Endpoint Test
+    # -------------------------------------------------------------
+    def test_health_endpoint(self):
+        res = self.client.get("/health")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json(), {"status": "ok"})
+
+        res_api = self.client.get("/api/health")
+        self.assertEqual(res_api.status_code, 200)
+        self.assertEqual(res_api.json(), {"status": "ok"})
+
+    # -------------------------------------------------------------
     # 1. Registration & Validation Unit Tests
     # -------------------------------------------------------------
     def test_registration_validations(self):
@@ -90,12 +102,14 @@ class TestAuthAndSecurity(unittest.TestCase):
         # Invalid Password
         res_bad_pass = self.client.post("/api/auth/login", json={"email": self.email_a, "password": "WrongPassword!"})
         self.assertEqual(res_bad_pass.status_code, 401)
-        self.assertEqual(res_bad_pass.json().get("detail"), "Invalid email or password.")
+        msg_bad_pass = res_bad_pass.json().get("message") or res_bad_pass.json().get("detail")
+        self.assertEqual(msg_bad_pass, "Invalid email or password.")
 
         # Non-existent Email
         res_bad_email = self.client.post("/api/auth/login", json={"email": "non_existent@example.com", "password": "Password123!"})
         self.assertEqual(res_bad_email.status_code, 401)
-        self.assertEqual(res_bad_email.json().get("detail"), "Invalid email or password.")
+        msg_bad_email = res_bad_email.json().get("message") or res_bad_email.json().get("detail")
+        self.assertEqual(msg_bad_email, "Invalid email or password.")
 
     # -------------------------------------------------------------
     # 3. JWT Authentication & Expiration

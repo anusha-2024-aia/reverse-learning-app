@@ -1,287 +1,219 @@
-# Reverse Learning Studio
+# Reverse Learning App
 
-### AI-Powered Learning Intelligence, Feynman Technique & Mock Interview Platform
+[![CI](https://github.com/anusha-2024-aia/reverse-learning-app/actions/workflows/ci.yml/badge.svg)](https://github.com/anusha-2024-aia/reverse-learning-app/actions/workflows/ci.yml)
 
-> **"An adaptive AI learning platform that evaluates whether students truly understand concepts by asking them to explain in their own words, detecting knowledge gaps, dynamically adapting study roadmaps, and conducting resume-targeted mock interviews."**
+AI-Powered Learning Intelligence, Feynman Technique & Mock Interview Platform.
 
----
-
-## 🚀 Live Demo & Production Deployment
-
-| Service | Live Link | Description |
-| :--- | :--- | :--- |
-| 🌐 **Live Web Application** | [reverse-learning-frontend-anusha.onrender.com](https://reverse-learning-frontend-anusha.onrender.com/) | Deployed Production Single-Page React Application |
-| ⚙️ **Backend REST API** | [reverse-learning-app.onrender.com](https://reverse-learning-app.onrender.com/) | Live FastAPI Async Web Server |
-| 📚 **Interactive API Docs** | [Swagger API Documentation](https://reverse-learning-app.onrender.com/docs) | Live Swagger UI for API Endpoint Testing |
-| 📄 **OpenAPI Specification** | [OpenAPI JSON Spec](https://reverse-learning-app.onrender.com/openapi.json) | Machine-Readable API Endpoint Schema |
+An adaptive AI learning platform that evaluates whether students truly understand concepts by asking them to explain in their own words, detecting knowledge gaps, dynamically adapting study roadmaps, and conducting resume-targeted mock interviews.
 
 ---
 
-## 🌟 Key Platform Highlights
+## 1. Project Overview
 
-- **✓ Reverse Learning Studio:** Evaluate true comprehension using the Feynman Technique (*learning by teaching*).
-- **✓ Multi-Dimensional AI Evaluation:** 4D evaluation scoring across Technical Accuracy, Concept Understanding, Communication, and Grammar.
-- **✓ Automated Knowledge Gap Detection:** Identify micro-level concept failures rather than vague percentage scores.
-- **✓ Dynamic Adaptive Roadmap:** Real-time learning path adjustments based on performance and user career goals.
-- **✓ Smart Spaced Repetition:** Ebbinghaus memory curve scheduler for optimal topic revision.
-- **✓ Resume Intelligence:** Extract skills and projects from PDF & DOCX resumes to generate personalized interview questions.
-- **✓ Adaptive AI Mock Interviews:** Dynamic difficulty adjustments (Easy $\rightarrow$ Medium $\rightarrow$ Hard) and follow-up probes during live interview practice.
-- **✓ AI Communication Coach:** Track speech pacing (Words Per Minute - WPM), filler words (*"um"*, *"like"*, *"basically"*), clarity, and vocal confidence.
-- **✓ Secure Multi-Tenant Architecture:** Strict user isolation, OWASP security headers, JWT validation, and RBAC rules.
-- **✓ Master QA & Resiliency:** Comprehensive test suite handling AI rate limits (403/429), malformed JSON, and DB rollbacks.
+The **Reverse Learning App** turns traditional passive learning upside down. Instead of passively reading or taking multiple-choice quizzes, students **teach the AI** using the Feynman Technique:
+- **Learn a Concept:** Pick a topic from Python, Java, SQL, Full Stack, AI/ML, or Interview Prep.
+- **Explain to AI:** Articulate the concept via text or voice.
+- **Multi-Dimensional AI Evaluation:** Receive instant 4D feedback on technical accuracy, concept understanding, completeness, examples, relevance, communication, and grammar.
+- **Knowledge Gap Detection:** Automatically isolate micro-level concept weaknesses.
+- **Adaptive Roadmap & Revision:** Dynamic career path adjustment and Ebbinghaus spaced repetition.
+- **Resume Intelligence & Mock Interviews:** Upload resumes (`.pdf` / `.docx`) to generate project-targeted adaptive mock interview questions.
 
 ---
 
-## 📌 Problem Statement vs. Solution
+## 2. Key Features
 
-### ❌ The Problem
-Traditional learning methods (reading tutorials, watching videos, or taking simple multiple-choice quizzes) fail technical students and job seekers because:
-- **Illusion of Competence:** Students passively recognize material but cannot articulate concepts clearly in their own words.
-- **Multiple-Choice Limitations:** Quizzes fail to measure technical depth, communication clarity, or explanation structure.
-- **Static Roadmaps:** Fixed course outlines do not adapt when a student struggles with foundational prerequisites.
-- **Irrelevant Interview Prep:** Generic practice questions ignore a candidate's actual resume experience and project background.
-- **Unmeasured Soft Skills:** Students receive zero feedback on filler words, speaking pace, and structural explanation quality.
-
-### 💡 The Solution
-The **Reverse Learning Studio** turns the traditional learning paradigm upside down. Instead of being spoon-fed information, users must **teach the AI**:
-
-1. **Learn a Concept:** Select a target topic from an extensive multi-disciplinary curriculum (Python, Java, Full Stack, SQL, AI/ML, Interview Prep).
-2. **Teach the AI:** Explain the concept in your own words via text or voice.
-3. **Receive 4D Feedback:** The Gemini AI engine grades technical accuracy, concept mastery, completeness, examples, relevance, communication, and grammar out of 100.
-4. **Identify Knowledge Gaps:** Failed sub-concepts are isolated into actionable weak spots.
-5. **Adaptive Recommendations:** The system dynamically computes the next priority topic to study.
-6. **Smart Revision:** Spaced repetition schedules review sessions before memory decay occurs.
-7. **Dynamic Roadmap:** Career goals automatically update estimated completion time and topic sequence.
-8. **Resume Intelligence:** Upload `.pdf` or `.docx` resumes to extract projects and generate ATS targeted questions.
-9. **Adaptive Mock Interviews:** Questions shift in difficulty dynamically based on live answer quality.
-10. **Communication Coaching:** Analyze filler words, speaking pace (WPM), and structural clarity metrics.
-11. **Master Analytics:** Track longitudinal progress via interactive Radar charts and trend graphs.
+- **Reverse Learning Studio:** Interactive explanation studio supporting text and voice inputs.
+- **Multi-Dimensional AI Assessment:** 4D scoring engine evaluating technical depth, clarity, and structural explanation quality out of 100.
+- **Automated Knowledge Gap Engine:** Isolates micro-concept failures and assigns severity levels (Mild, Moderate, Severe).
+- **Dynamic Learning Roadmap:** Automatically adjusts study milestones and estimated time based on performance.
+- **Smart Spaced Repetition:** Ebbinghaus memory curve scheduler categorizing topics into *Due Today*, *Overdue*, and *Upcoming*.
+- **Resume Intelligence:** Extract technical skills, projects, and work experience from PDF and DOCX documents.
+- **Adaptive AI Mock Interviewer:** Dynamic difficulty scaling (Easy $\rightarrow$ Medium $\rightarrow$ Hard) with follow-up probe questions.
+- **AI Communication Coach:** Tracks speech pace (WPM), filler word frequency (*"um"*, *"like"*, *"basically"*), and vocal clarity.
+- **Security & Multi-Tenant Isolation:** User data isolation, bcrypt password hashing, stateless JWT authentication, and OWASP security headers.
 
 ---
 
-## 💡 Closed-Loop Learning Pipeline
-
-```
- Learn Concept
-      │
-      ▼
- Explain to AI (Reverse Learning Studio)
-      │
-      ▼
- Structured AI Evaluation (4D Metrics)
-      │
-      ▼
- Detect Specific Knowledge Gaps
-      │
-      ▼
- Calculate Adaptive Priority & Update Roadmap
-      │
-      ▼
- Smart Spaced Revision & Retest
-      │
-      ▼
- Resume-Targeted Adaptive Mock Interview
-      │
-      ▼
- Track Longitudinal Communication & Skill Analytics
-```
-
----
-
-## ✨ Feature Breakdown
-
-### 🎙️ 1. Reverse Learning Studio
-- Interactive studio for submitting explanations via **Text-to-Text**, **Voice-to-Text**, or **Voice-to-Voice**.
-- Prompts students to explain algorithms, data structures, and system design concepts using the Feynman Technique.
-
-### 📊 2. Multi-Dimensional AI Evaluation Engine
-- **Technical Logic & Accuracy (0-100):** Deep evaluation of core technical mechanics.
-- **Concept Mastery (0-100):** Depth of theoretical understanding.
-- **Completeness & Examples (0-100):** Presence of code snippets, analogies, and edge cases.
-- **Communication & Grammar (0-100):** Vocabulary quality, sentence structure, and clarity.
-- **Advanced Version Generation:** Provides a polished, professional version of the student's explanation to learn from.
-
-### 🔍 3. Automated Knowledge Gap Engine
-- Tracks attempt history and accuracy ratios across micro-concepts.
-- Categorizes weakness severity into **Mild**, **Moderate**, or **Severe**.
-- Provides targeted learning recommendations and action items.
-
-### 🗺️ 4. Dynamic Learning Roadmap
-- Customized career targets (e.g., *Backend Security Engineer*, *Full Stack Developer*, *AI/ML Engineer*).
-- Dynamic time estimation based on user weekly availability (hours/day, days/week).
-- Automated topic re-ordering when prerequisites are failed.
-
-### 🔄 5. Smart Spaced Revision Scheduler
-- Ebbinghaus memory curve implementation.
-- Categorization into *Due Today*, *Overdue*, and *Upcoming*.
-- Performance-driven review interval scaling.
-
-### 📄 6. Resume Intelligence Engine
-- Multi-format document parser (`PyMuPDF` for `.pdf` and `python-docx` for `.docx`).
-- Automated extraction of technical skills, projects, work experience, and education.
-- ATS keyword gap analysis against target job roles.
-- Personalized, project-specific interview question generation.
-
-### 🎙️ 7. Adaptive AI Mock Interviewer
-- Real-time difficulty scaling (EASY $\rightarrow$ MEDIUM $\rightarrow$ HARD).
-- Dynamic follow-up probe questions based on previous answer weaknesses.
-- Comprehensive post-interview feedback report with overall scores and problem-solving breakdowns.
-
-### 🗣️ 8. AI Communication Coach
-- Voice & text transcript analysis.
-- Detection of filler words (*"um"*, *"like"*, *"basically"*, *"you know"*).
-- Estimated speaking pace calculation (Words Per Minute - WPM).
-- Structural advice and actionable confidence recommendations.
-
-### 🏆 9. Gamification & Achievement Engine
-- Study streak counter with active flame indicators.
-- Unlockable achievement badges (e.g., *First Step*, *Streak Master*, *Interview Ace*).
-- Real-time achievement unlock notifications.
-
-### 🔒 10. Security & Multi-Tenant Architecture
-- User isolation: Strict tenant scoping preventing User A from querying User B's interviews, resumes, or evaluations.
-- JWT stateless authentication with hashed passwords (`bcrypt`).
-- OWASP recommended security headers (`X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`).
-- Executable (`.exe`, `.js`) and path-traversal upload protection.
-
----
-
-## 🏗️ System Architecture
-
-```
-                  +-----------------------------------+
-                  |         Student User (Client)     |
-                  +-----------------------------------+
-                                    |
-                                    v
-                  +-----------------------------------+
-                  |   React + Vite Frontend Application|
-                  +-----------------------------------+
-                                    | REST APIs (Axios + JWT)
-                                    v
-                  +-----------------------------------+
-                  |       FastAPI Backend Server      |
-                  |     (Security, Auth & Routing)    |
-                  +-----------------------------------+
-                                    |
-     +------------------------------+------------------------------+
-     |                              |                              |
-     v                              v                              v
-+------------------+       +-------------------+       +-----------------------+
-|  SQLite Database |       |  Google Gemini AI |       | Resume Document Parser|
-| (SQLAlchemy ORM) |       |  Evaluation Engine|       | (PyMuPDF & docx)      |
-+------------------+       +-------------------+       +-----------------------+
-     |                              |                              |
-     +------------------------------+------------------------------+
-                                    |
-                                    v
-                  +-----------------------------------+
-                  |  Knowledge Gap & Adaptive Engines  |
-                  +-----------------------------------+
-```
-
----
-
-## 💻 Tech Stack
+## 3. Tech Stack
 
 ### Frontend
 - **Framework:** React 19 (Vite)
 - **Styling:** Tailwind CSS 4, Vanilla CSS Design System
 - **Icons:** Lucide React
-- **Charts & Data Viz:** Recharts (Radar charts, line trends, progress bars)
+- **Charts & Visualization:** Recharts
 - **Routing:** React Router v7
+- **HTTP Client:** Axios
 
 ### Backend
-- **Framework:** Python 3.9+ & FastAPI (Async API Engine)
-- **Server:** Uvicorn (ASGI)
-- **Database Engine:** SQLite (SQLAlchemy ORM) / PostgreSQL compatible
-- **Authentication:** JWT (`python-jose`) & Password Hashing (`passlib[bcrypt]`)
+- **Framework:** Python 3.9+ & FastAPI (Async ASGI Engine)
+- **Server:** Uvicorn
+- **Database ORM:** SQLAlchemy
+- **Database:** SQLite (Local Development)
+- **Authentication:** JWT (`python-jose`) & Password Hashing (`bcrypt`)
+- **Document Parsing:** PyMuPDF (`fitz`) for PDF & `python-docx` for Word Documents
 
-### AI & Document Parsing
-- **AI LLM Engine:** Google Gemini API (`google-genai` / `google-generativeai`)
-- **Document Text Extraction:** PyMuPDF (`fitz`) for PDF & `python-docx` for Word Documents
-
-### Testing & QA
-- **Unit & E2E Testing:** Python `unittest` & `fastapi.testclient`
-- **Master Test Runner:** Custom master test runner ([`run_all_tests.py`](file:///c:/Users/anush/Desktop/reverse-learning-app/backend/run_all_tests.py))
+### AI Engine
+- **LLM Engine:** Google Gemini API (`openai` SDK with Google Generative Language endpoint)
 
 ---
 
-## 🔌 Core API Endpoints
+## 4. Project Structure
 
-### 🔑 Authentication
-| Method | Endpoint | Auth | Purpose |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/api/auth/register` | Public | Register new user account |
-| `POST` | `/api/auth/login` | Public | Authenticate user & return JWT token |
-| `GET` | `/api/auth/me` | Bearer JWT | Fetch active user profile |
-
-### 📊 Dashboard & Analytics
-| Method | Endpoint | Auth | Purpose |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/dashboard-data` | Bearer JWT | Fetch aggregated dashboard metrics & student pipeline |
-| `GET` | `/api/analytics` | Bearer JWT | Fetch skill radar data, score trends, and topic progress |
-
-### 🎙️ Evaluation & Study Room
-| Method | Endpoint | Auth | Purpose |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/api/evaluate` | Bearer JWT | Submit concept explanation for 4D AI evaluation |
-| `GET` | `/api/evaluations/history` | Bearer JWT | Fetch user evaluation submission history |
-| `GET` | `/api/dashboard/knowledge-gap` | Bearer JWT | Retrieve user knowledge gap diagnostic matrix |
-
-### 🗺️ Roadmap & Revision
-| Method | Endpoint | Auth | Purpose |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/roadmap` | Bearer JWT | Fetch user career roadmap and milestone items |
-| `POST` | `/api/roadmap/generate` | Bearer JWT | Generate dynamic AI career roadmap |
-| `GET` | `/api/revision/summary` | Bearer JWT | Get Ebbinghaus spaced revision schedule |
-
-### 📄 Resume & Mock Interview
-| Method | Endpoint | Auth | Purpose |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/api/resume/upload` | Bearer JWT | Upload PDF/DOCX resume for ATS parsing |
-| `POST` | `/api/interview/start` | Bearer JWT | Initialize adaptive mock interview session |
-| `POST` | `/api/interview/answer` | Bearer JWT | Submit interview answer & trigger adaptive probe |
-| `POST` | `/api/communication/analyze` | Bearer JWT | Analyze speech pacing, filler words, and clarity |
+```text
+reverse-learning-app/
+├── backend/
+│   ├── app/
+│   │   ├── ai_service/      # Gemini AI evaluation & interview engines
+│   │   ├── routes/          # FastAPI API route handlers
+│   │   ├── services/        # Business logic & adaptive engines
+│   │   ├── auth.py          # JWT & bcrypt authentication
+│   │   ├── database.py      # SQLAlchemy engine & session setup
+│   │   ├── main.py          # FastAPI app initialization & CORS
+│   │   ├── models.py        # SQLAlchemy database models
+│   │   ├── schemas.py       # Pydantic request/response schemas
+│   │   └── seeds.py         # Initial topic curriculum seed data
+│   ├── tests/               # Backend unit, security & E2E tests
+│   ├── .env.example         # Backend environment template
+│   ├── create_tables.py     # Standalone DB initialization script
+│   ├── requirements.txt     # Python runtime dependencies
+│   └── run_all_tests.py     # Master test suite runner
+├── frontend/
+│   ├── public/              # Static public assets
+│   ├── src/
+│   │   ├── api/             # Axios instance configuration
+│   │   ├── components/      # Reusable UI components
+│   │   ├── context/         # Auth & state management contexts
+│   │   ├── pages/           # Application views & dashboards
+│   │   └── services/        # Frontend API call wrappers
+│   ├── .env.example         # Frontend environment template
+│   ├── package.json         # Node.js dependencies & scripts
+│   └── vite.config.js       # Vite build configuration
+├── .env.example             # Root environment variable template
+├── .gitignore               # Git untracked files pattern
+└── README.md                # Project documentation
+```
 
 ---
 
-## 🚀 How to Run (Getting Started Locally)
+## 5. Prerequisites
 
-### Prerequisites
-- **Node.js** (v18+)
-- **Python** (3.9+)
+Before installing the project, ensure you have the following installed on your machine:
 
-### 1. Backend Setup
+- **Python:** Version 3.9, 3.10, 3.11, or 3.12 (`python --version`)
+- **Node.js:** Version 18.0.0 or higher (`node -v`)
+- **npm:** Version 9.0.0 or higher (`npm -v`)
+- **Google Gemini API Key:** Required for AI features ([Get Gemini API Key](https://aistudio.google.com/))
 
-Navigate to the `backend` directory and set up the Python environment:
+---
+
+## 6. Clone Repository
+
+Open your terminal or PowerShell and run:
+
+```bash
+git clone https://github.com/anusha-2024-aia/reverse-learning-app.git
+cd reverse-learning-app
+```
+
+---
+
+## 7. Backend Setup
+
+### Step 7.1: Navigate to Backend Directory
 
 ```bash
 cd backend
+```
 
-# Create virtual environment
+### Step 7.2: Create Virtual Environment
+
+On Windows (PowerShell / Command Prompt):
+
+```powershell
 python -m venv venv
+```
 
-# Activate virtual environment
-# Windows:
+On Linux / macOS:
+
+```bash
+python3 -m venv venv
+```
+
+### Step 7.3: Activate Virtual Environment
+
+On Windows (PowerShell):
+
+```powershell
 .\venv\Scripts\activate
-# Mac/Linux:
-source venv/bin/activate
+```
 
-# Install dependencies
+On Windows (Command Prompt):
+
+```cmd
+venv\Scripts\activate.bat
+```
+
+On Linux / macOS:
+
+```bash
+source venv/bin/activate
+```
+
+### Step 7.4: Install Python Dependencies
+
+```bash
 pip install -r requirements.txt
 ```
 
-Create a `.env` file inside `backend/.env`:
+### Step 7.5: Configure Environment Variables
+
+Copy `.env.example` to `.env`:
+
+On Windows (PowerShell):
+
+```powershell
+Copy-Item .env.example .env
+```
+
+On Command Prompt / Linux / macOS:
+
+```bash
+cp .env.example .env
+```
+
+Generate a strong random secret key for local development:
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+Edit `backend/.env` with your settings:
 
 ```env
 GEMINI_API_KEY=your_gemini_api_key_here
 DATABASE_URL=sqlite:///./study.db
-JWT_SECRET=your_secret_jwt_key_here
+JWT_SECRET=your_generated_random_secret_here
+JWT_ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=1440
 FRONTEND_URL=http://localhost:5173
 ```
 
-Start the FastAPI server:
+> **IMPORTANT SECURITY REQUIREMENTS:**
+> 1. `JWT_SECRET` is **mandatory**. If missing or empty, application startup will fail immediately with a clear configuration error.
+> 2. Never commit `.env` or hardcode secrets into source code or repository configuration.
+> 3. Generate a unique, cryptographically strong secret for each environment.
+
+### Step 7.6: Database Initialization
+
+The database automatically initializes SQLite tables and seeds the curriculum topics when the FastAPI server starts.
+
+Alternatively, you can manually trigger database initialization anytime by running:
+
+```bash
+python create_tables.py
+```
+
+### Step 7.7: Start Backend Server
 
 ```bash
 python -m uvicorn app.main:app --reload
@@ -291,61 +223,422 @@ The backend server will run on `http://localhost:8000`.
 
 ---
 
-### 2. Frontend Setup
+## 8. Frontend Setup
 
-Open a new terminal window and navigate to the `frontend` directory:
+Open a **new terminal window**, enter the project root directory, and navigate to `frontend`:
 
 ```bash
 cd frontend
+```
 
-# Install dependencies
+### Step 8.1: Install Node Dependencies
+
+```bash
 npm install
+```
 
-# Start development server
+### Step 8.2: Configure Environment Variables
+
+Copy `.env.example` to `.env`:
+
+On Windows (PowerShell):
+
+```powershell
+Copy-Item .env.example .env
+```
+
+On Command Prompt / Linux / macOS:
+
+```bash
+cp .env.example .env
+```
+
+Ensure `frontend/.env` contains:
+
+```env
+VITE_API_URL=http://localhost:8000
+```
+
+> **Note:** If `.env` is omitted, the frontend defaults to `http://localhost:8000`.
+
+### Step 8.3: Start Frontend Development Server
+
+```bash
 npm run dev
 ```
 
-The frontend application will run on `http://localhost:5173`. Open this URL in your browser to start your Reverse Learning journey!
+The frontend application will start on `http://localhost:5173`.
 
 ---
 
-## 🔐 Environment Variables Configuration
+## 9. Database Configuration & Environment Variables
 
-| Variable Name | Environment | Example / Description |
-| :--- | :--- | :--- |
-| `GEMINI_API_KEY` | Backend | Google Gemini API Key |
-| `DATABASE_URL` | Backend | `sqlite:///./study.db` or PostgreSQL connection string |
-| `JWT_SECRET` | Backend | Secret key for signing JWT tokens |
-| `JWT_ALGORITHM` | Backend | `HS256` |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | Backend | `1440` (24 hours) |
-| `FRONTEND_URL` | Backend | `http://localhost:5173` or deployed frontend URL |
-| `VITE_API_BASE_URL` | Frontend | `http://localhost:8000/api` or deployed backend API URL |
+### Database Configuration
+
+#### Local Development
+
+The project uses lightweight **SQLite** locally (`sqlite:///./study.db`). No PostgreSQL server or Docker installation is required on your local machine.
+
+Example local configuration in `backend/.env`:
+
+```env
+DATABASE_URL=sqlite:///./study.db
+```
+
+#### Production
+
+Production uses a managed **Cloud PostgreSQL** database (such as Supabase, AWS RDS, Neon, or Render PostgreSQL).
+
+The production hosting platform provides `DATABASE_URL` as a server-side environment variable:
+
+```env
+DATABASE_URL=postgresql://username:password@host:5432/database
+```
+
+- Database selection is automatically controlled by `DATABASE_URL`.
+- Standard legacy `postgres://` URLs are automatically normalized to `postgresql://` centrally in `app/database.py`.
+- Unencoded special characters in passwords are safely handled by the database layer.
+- Never commit production database credentials to version control.
+
+### Environment Variables Matrix
+
+| Variable Name | Scope | Purpose | Safe Example |
+| :--- | :--- | :--- | :--- |
+| `GEMINI_API_KEY` | Backend | Google Gemini API key for AI evaluation & mock interviews | `AIzaSy...` (from Google AI Studio) |
+| `DATABASE_URL` | Backend | SQLAlchemy connection URL (SQLite local / PostgreSQL prod) | `sqlite:///./study.db` |
+| `JWT_SECRET` | Backend | Secret key used to sign JWT authentication tokens | `replace_with_a_secure_random_secret` |
+| `JWT_ALGORITHM` | Backend | Algorithm for JWT signature validation | `HS256` |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | Backend | Expiration window for access tokens (in minutes) | `1440` (24 hours) |
+| `FRONTEND_URL` | Backend | Frontend URL allowed by CORS policy | `http://localhost:5173` |
+| `VITE_API_URL` | Frontend | Base URL of the FastAPI backend server | `http://localhost:8000` |
 
 ---
 
-## 🧪 Automated Master Test Matrix
+## 10. Running the Application
 
-Run the automated master test suite:
+To run the complete application locally:
+
+### Terminal 1: Backend Server
 
 ```bash
-python backend/run_all_tests.py
+cd backend
+.\venv\Scripts\activate
+python -m uvicorn app.main:app --reload
 ```
 
-### Test Results Summary
+### Terminal 2: Frontend Server
+
+```bash
+cd frontend
+npm run dev
+```
+
+### Application User Flow
+
+1. Open your browser to `http://localhost:5173`.
+2. Click **Register** to create a new local user account.
+3. **Log in** with your credentials.
+4. Go to **Curriculum / Topics**, pick a concept (e.g., *Variables, Data Types & Operators* in Python Mastery).
+5. Open **Reverse Learning Studio**, type or speak your explanation of the concept, and click **Submit Evaluation**.
+6. View your **4D AI Score breakdown**, detected **Knowledge Gaps**, and **Smart Spaced Revision** schedule on the **Dashboard**.
+
+---
+
+## 11. API Health Check
+
+Verify that the FastAPI backend server is running correctly by sending a request to the health check endpoint:
+
+```bash
+curl http://localhost:8000/health
+```
+
+**Expected JSON Response:**
+
+```json
+{
+  "status": "ok"
+}
+```
+
+You can also check `http://localhost:8000/health` directly in your browser.
+
+---
+
+## 12. API Documentation
+
+FastAPI automatically generates interactive OpenAPI documentation:
+
+- **Swagger UI:** `http://localhost:8000/docs`
+- **ReDoc UI:** `http://localhost:8000/redoc`
+- **OpenAPI Schema (JSON):** `http://localhost:8000/openapi.json`
+
+Use Swagger UI to test endpoints like `/api/auth/register`, `/api/auth/login`, and `/api/health` directly from your browser.
+
+---
+
+## 13. Running Tests
+
+### Backend Automated Test Suite
+
+Ensure your backend virtual environment is activated, then run the master test suite:
+
+```bash
+cd backend
+python run_all_tests.py
+```
+
+Or run tests via `pytest`:
+
+```bash
+cd backend
+python -m pytest
+```
+
+### Verified Test Suite Coverage
+
+- **Health Check Endpoint:** `GET /health` verification (`status 200 OK`)
+- **Authentication & Security:** User registration, password hashing (`bcrypt`), JWT token validation, unauthorized endpoint rejection
+- **User Data Isolation:** Verification that User A cannot access User B's resumes or interview reports
+- **Security Protections:** Rejection of non-PDF/DOCX executable file uploads and path traversal sanitization
+- **AI & DB Resiliency:** Handling AI rate limit responses gracefully and rolling back failed DB transactions
+- **Mocked Evaluation API:** Verification of `/api/evaluate` without making external Gemini API network calls
+
+### Continuous Integration (GitHub Actions)
+
+GitHub Actions automatically validates backend and frontend changes on every `push` or `pull_request` to the `main` branch:
+
+- **Backend CI Job (`Python 3.11`)**:
+  - Automatically installs dependencies from `backend/requirements.txt`.
+  - Configures safe, isolated test environment variables (`DATABASE_URL=sqlite:///./ci_test.db`, test JWT secret).
+  - Executes the master test suite (`python run_all_tests.py`) verifying all 47 backend unit, security, rate limiting, and resiliency tests without requiring external Gemini API credentials.
+- **Frontend CI Job (`Node.js 20`)**:
+  - Installs dependencies using `npm ci` in `frontend/`.
+  - Executes ESLint static checks (`npm run lint`).
+  - Executes the production Vite build (`npm run build`) to ensure client bundle compilation succeeds cleanly.
+
+
+Workflow configuration file: [`.github/workflows/ci.yml`](file:///c:/Users/anush/Desktop/reverse-learning-app/.github/workflows/ci.yml)
+
+---
+
+## 14. Troubleshooting
+
+### Problem: Port 8000 or 5173 is already in use
+- **Cause:** Another process is listening on port 8000 or 5173.
+- **Solution (Windows):** Find and kill the process using port 8000:
+  ```powershell
+  Get-Process -Id (Get-NetTCPConnection -LocalPort 8000).OwningProcess | Stop-Process -Force
+  ```
+  Or start FastAPI on a different port:
+  ```bash
+  python -m uvicorn app.main:app --reload --port 8001
+  ```
+  If changing backend port, update `frontend/.env` to `VITE_API_URL=http://localhost:8001`.
+
+---
+
+### Problem: Missing .env or GEMINI_API_KEY error
+- **Cause:** `backend/.env` file is missing or `GEMINI_API_KEY` is not set.
+- **Solution:** Create `backend/.env` from `backend/.env.example` and set `GEMINI_API_KEY=your_gemini_api_key_here`. Non-AI routes and health check will still work without key.
+
+---
+
+### Problem: Frontend displays "API Error" or cannot connect to backend
+- **Cause:** Backend server is not running or `VITE_API_URL` is misconfigured.
+- **Solution:**
+  1. Confirm backend is running at `http://localhost:8000`.
+  2. Verify `curl http://localhost:8000/health` returns `{"status": "ok"}`.
+  3. Ensure `frontend/.env` has `VITE_API_URL=http://localhost:8000`.
+  4. Restart frontend dev server (`npm run dev`).
+
+---
+
+### Problem: CORS Policy Error in Browser Console
+- **Cause:** Frontend is running on a port not listed in backend CORS origins.
+- **Solution:** Backend automatically allows `http://localhost:5173` and `http://localhost:5174`. If your frontend runs on a custom port (e.g. `5175`), update `FRONTEND_URL=http://localhost:5175` in `backend/.env` and restart backend.
+
+---
+
+### Problem: Database locked or initialization error
+- **Cause:** A previous Python process did not close `study.db`.
+- **Solution:** Stop running Python processes, delete local `backend/study.db` if corrupted, and run `python create_tables.py` to recreate a fresh database.
+
+---
+
+### Problem: npm install fails with dependency conflicts
+- **Cause:** Node.js version mismatch.
+- **Solution:** Use Node v18+ and run:
+  ```bash
+  npm install --legacy-peer-deps
+  ```
+
+---
+
+## 15. Architecture
+
+### System Architecture Diagram
 
 ```text
-==================================================
-           PHASE 13 TEST SUMMARY REPORT          
-==================================================
-Total Tests Executed : 19
-Passed               : 19
-Failed               : 0
-==================================================
-ALL PRODUCTION & QA TESTS PASSED SUCCESSFULLY!
+LOCAL DEVELOPMENT:
+
+React (Vite)
+    │
+    ▼
+FastAPI Backend
+    │
+    ▼
+SQLAlchemy ORM
+    │
+    ▼
+SQLite Database (study.db)
+
+
+PRODUCTION DEPLOYMENT:
+
+React (Vite / CDN)
+    │
+    ▼
+FastAPI Backend
+    │
+    ▼
+SQLAlchemy ORM
+    │
+    ▼
+Cloud Managed PostgreSQL (DATABASE_URL)
+```
+
+### System Component Flow
+
+```mermaid
+graph TD
+    A[Student / Recruiter Browser] -->|HTTP / REST| B[React + Vite Frontend]
+    B -->|Axios + JWT Auth| C[FastAPI Backend Server]
+    C -->|ORM / Dynamic DB| D[(SQLite / Cloud PostgreSQL)]
+    C -->|OpenAI SDK Client| E[Google Gemini AI Engine]
+    C -->|PyMuPDF & python-docx| F[Resume Document Parser]
+```
+
+### Data & Evaluation Pipeline
+
+```text
+User Explanation (Text / Voice)
+             │
+             ▼
+FastAPI Security & Auth Middleware
+             │
+             ▼
+Gemini AI 4D Assessment Engine
+             │
+             ▼
+Knowledge Gap Diagnostic Engine
+             │
+             ▼
+SQLAlchemy DB Persistence (SQLite / PostgreSQL)
+             │
+             ▼
+React Frontend Dashboard & Radar Analytics
 ```
 
 ---
 
-## 📄 License & Attribution
+## 16. Development Flow
 
-Developed with ❤️ as part of the **Reverse Learning Studio** project. Empowering learners worldwide to master technical topics through the Feynman Technique.
+```text
+Git Clone Repository
+         │
+         ▼
+Configure .env Files (Backend & Frontend)
+         │
+         ▼
+Install Dependencies (pip install & npm install)
+         │
+         ▼
+Initialize Database (Automatic / create_tables.py)
+         │
+         ▼
+Run Local Servers (FastAPI :8000 & Vite :5173)
+         │
+         ▼
+Run Test Suite (python run_all_tests.py)
+```
+
+---
+
+## 🛡️ API Rate Limiting (Security & Cost Protection)
+
+The backend features a lightweight, zero-dependency, in-memory sliding window API rate limiter ([`app/rate_limiter.py`](file:///c:/Users/anush/Desktop/reverse-learning-app/backend/app/rate_limiter.py)) designed to protect expensive Gemini AI evaluation, document parsing, and authentication endpoints from excessive requests.
+
+### Key Rate Limits & Defaults
+
+| Endpoint Category | Default Limit | Identification Key | Purpose | Config Environment Variable |
+|---|---|---|---|---|
+| **AI Evaluation** | `5 requests / min` | `user.id` | Prevents Gemini API quota exhaustion | `AI_EVALUATION_RATE_LIMIT` |
+| **Mock Interview** | `5 requests / min` | `user.id` | Controls interview AI generation | `INTERVIEW_RATE_LIMIT` |
+| **Document Processing** | `3 requests / min` | `user.id` | Limits resume upload & parsing | `DOCUMENT_RATE_LIMIT` |
+| **Communication Coach** | `5 requests / min` | `user.id` | Limits audio transcript analysis | `COMMUNICATION_RATE_LIMIT` |
+| **AI Roadmap** | `3 requests / min` | `user.id` | Limits onboarding AI roadmap creation | `ROADMAP_RATE_LIMIT` |
+| **Authentication** | `10 requests / min` | Client IP Address | Prevents credential brute-forcing | `AUTH_RATE_LIMIT` |
+| **Health Checks** | `Unrestricted` | N/A | Uptime monitoring (`/health`) | N/A |
+
+### Rate Limit Exceeded Response (`HTTP 429`)
+
+When a client or authenticated user exceeds their allowed rate limit, the API immediately returns `HTTP 429 Too Many Requests` BEFORE invoking any downstream AI models or database queries:
+
+```json
+{
+  "detail": "Too many requests. Please try again later."
+}
+```
+
+Response Headers returned:
+- `Retry-After`: Number of seconds remaining until requests are accepted again.
+- `X-RateLimit-Limit`: Maximum requests permitted per window.
+- `X-RateLimit-Remaining`: Remaining request quota in current window (`0`).
+
+> [!NOTE]  
+> **Multi-Worker Deployment Note**: In multi-worker backend deployments (e.g. Uvicorn with multiple `--workers`), rate limits apply per backend process unless sticky sessions or a centralized redis cache are configured. For single-instance deployments, this in-memory implementation provides zero-overhead, instant protection.
+
+---
+
+## 🔒 Centralized Error Handling & Structured Logging
+
+The FastAPI backend incorporates standardized centralized error handling, machine-readable error codes, safe logging, and request timing middleware.
+
+### Response JSON Schema
+
+All error responses return a standardized, secure JSON payload:
+
+```json
+{
+  "success": false,
+  "error": "ERROR_CODE",
+  "message": "Human-readable safe message",
+  "request_id": "req_a1b2c3d4e5f6"
+}
+```
+
+### Error Code Matrix
+
+| Error Code | HTTP Status | Trigger Condition |
+|---|---|---|
+| `BAD_REQUEST` | `400` | Malformed request parameters or invalid file upload |
+| `AUTHENTICATION_FAILED` | `401` | Missing, expired, or tampered JWT token |
+| `AUTHORIZATION_FAILED` | `403` | Access forbidden to requested user resource |
+| `RESOURCE_NOT_FOUND` | `404` | Topic, evaluation, resume, or session missing |
+| `VALIDATION_ERROR` | `422` | Request body or query field validation failure |
+| `RATE_LIMIT_EXCEEDED` | `429` | Sliding window rate limit threshold breached |
+| `DATABASE_ERROR` | `500` | Internal database query or transaction exception |
+| `AI_SERVICE_ERROR` | `503` / `500` | Gemini API service unavailable or quota error |
+| `INTERNAL_SERVER_ERROR` | `500` | Unhandled unexpected backend exception |
+
+### Structured Request Logging & Privacy Protection
+
+- Every HTTP request receives a unique `X-Request-ID` header (e.g. `req_a1b2c3d4e5f6`).
+- Request timing middleware logs execution duration in seconds (`duration=0.12s`).
+- Sensitive data filtering guarantees `GEMINI_API_KEY`, `JWT_SECRET`, `DATABASE_URL`, user passwords, authorization tokens, and request/response payloads are **never logged**.
+
+---
+
+## 📄 License
+
+Developed as part of the **Reverse Learning App** project. Empowering learners to achieve true technical mastery through the Feynman Technique.

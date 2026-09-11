@@ -5,9 +5,12 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app import models
 from app.auth import get_current_user
+from app.rate_limiter import rate_limit_authenticated
 from app.services.resume_intelligence_service import ResumeIntelligenceService
 
 router = APIRouter()
+
+doc_rate_limit = rate_limit_authenticated(default_limit=3, window_seconds=60, env_var_name="DOCUMENT_RATE_LIMIT")
 
 import uuid
 
@@ -17,7 +20,7 @@ MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024 # 10 MB
 async def upload_resume(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user)
+    current_user: models.User = Depends(doc_rate_limit)
 ):
     """
     Uploads PDF or DOCX resume, validates format and size, extracts text,
@@ -204,7 +207,7 @@ def get_resume_by_id(
 @router.post("/resume/analyze")
 async def reanalyze_resume(
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user)
+    current_user: models.User = Depends(doc_rate_limit)
 ):
     """
     Re-runs Gemini analysis and question generation on the active resume.

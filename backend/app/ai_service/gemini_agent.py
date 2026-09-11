@@ -3,17 +3,19 @@ import json
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
 
+from app.core.logging_config import logger
+
 load_dotenv()
 
 # Configure Gemini using OpenAI SDK
 api_key = os.getenv("GEMINI_API_KEY")
 
-if not api_key:
-    print("WARNING: GEMINI_API_KEY not found in environment variables. AI features will not work.")
+if not api_key or api_key.strip() in ("", "your_gemini_api_key_here"):
+    logger.warning("GEMINI_API_KEY not found or unconfigured in environment variables. AI features will fail clearly.")
     client = None
 else:
     client = AsyncOpenAI(
-        api_key=api_key,
+        api_key=api_key.strip(),
         base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
     )
 
@@ -21,12 +23,12 @@ model_name = "gemini-2.5-flash"
 
 async def stream_evaluate_explanation(topic: str, user_explanation: str, learning_mode: str = "general"):
     """
-    Evaluates the user's explanation using Grok in a streaming fashion.
+    Evaluates the user's explanation using Gemini in a streaming fashion.
     Incorporates the learning_mode to tune the evaluation style.
     """
     if not client:
-        yield "<thinking>Error occurred: GEMINI_API_KEY is not configured</thinking>"
-        yield '<json>{"score": 0, "missing_concepts": ["System Error"], "feedback": "GEMINI_API_KEY is missing."}</json>'
+        yield "<thinking>Error occurred: Missing required environment variable: GEMINI_API_KEY. Please create a .env file using .env.example.</thinking>"
+        yield '<json>{"score": 0, "missing_concepts": ["Configuration Error"], "feedback": "Missing required environment variable: GEMINI_API_KEY. Please create a .env file using .env.example."}</json>'
         return
     
     # Mode-specific focus instructions
