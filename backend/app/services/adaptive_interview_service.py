@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app import models
 from app.ai_service.gemini_agent import client, model_name
 from app.services.activity_service import ActivityService
+from app.core.logging_config import logger
 
 WEAK_THRESHOLD = 60
 STRONG_THRESHOLD = 80
@@ -133,7 +134,7 @@ class AdaptiveInterviewService:
                 "feedback": eval_data.get("feedback", "Good effort on your response.")
             }
         except Exception as err:
-            print(f"Gemini single answer evaluation error: {err}")
+            logger.error(f"Gemini single answer evaluation error: {err}")
             word_count = len(answer.strip().split())
             if word_count < 10:
                 score = 48
@@ -257,7 +258,7 @@ class AdaptiveInterviewService:
                         "source": q_data.get("source", "Interview Context")
                     }
         except Exception as err:
-            print(f"Gemini adaptive question generation error: {err}")
+            logger.error(f"Gemini adaptive question generation error: {err}")
 
         # Fallback Question Pool if AI is offline or repeated question generated
         return AdaptiveInterviewService._generate_fallback_question(
@@ -475,7 +476,7 @@ class AdaptiveInterviewService:
                     e = r_text.rfind("}")
                     report_data = json.loads(r_text[s:e+1], strict=False)
             except Exception as err:
-                print(f"Gemini final report analysis error: {err}")
+                logger.error(f"Gemini final report analysis error: {err}")
 
         if not report_data:
             report_data = {
@@ -519,7 +520,7 @@ class AdaptiveInterviewService:
             from app.services import achievement_service
             achievement_service.check_achievements_for_user(db, user_id)
         except Exception as ach_err:
-            print(f"Error triggering achievements: {ach_err}")
+            logger.error(f"Error triggering achievements: {ach_err}")
 
         # Connect weak topics to Knowledge Gap Engine & Adaptive Recommendations
         try:
@@ -540,6 +541,6 @@ class AdaptiveInterviewService:
                     db.add(db_eval)
                     db.commit()
         except Exception as gap_err:
-            print(f"Error syncing knowledge gaps from interview: {gap_err}")
+            logger.error(f"Error syncing knowledge gaps from interview: {gap_err}")
 
         return report_payload

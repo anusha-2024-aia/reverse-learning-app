@@ -30,6 +30,19 @@ class DimensionDetail(BaseModel):
     score: int
     feedback: str
 
+class ConceptCoverageDetail(BaseModel):
+    concept: str
+    covered: bool
+    matched_evidence: Optional[str] = None
+
+class ConceptCoverageOut(BaseModel):
+    required_count: int
+    covered_count: int
+    coverage_percentage: Optional[float] = None
+    covered_concepts: list[str] = []
+    missing_concepts: list[str] = []
+    details: list[ConceptCoverageDetail] = []
+
 class MultiDimensionalEvaluation(BaseModel):
     technicalAccuracy: DimensionDetail
     conceptUnderstanding: DimensionDetail
@@ -42,6 +55,7 @@ class MultiDimensionalEvaluation(BaseModel):
     strengths: list[str] = []
     weaknesses: list[str] = []
     knowledgeGaps: list[dict] = [] # list of {"concept": str, "severity": str, "evidence": str}
+    concept_coverage: Optional[ConceptCoverageOut] = None
     overallInsight: Optional[str] = None
 
 class EvaluationOut(BaseModel):

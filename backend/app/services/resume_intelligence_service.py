@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from app.models import Resume, ResumeQuestion, ResumeInterview, Evaluation, Topic, UserMastery
 from app.ai_service.gemini_agent import client, model_name
 from app.services.activity_service import ActivityService
+from app.core.logging_config import logger
 
 class ResumeIntelligenceService:
 
@@ -33,7 +34,7 @@ class ResumeIntelligenceService:
             else:
                 raise Exception(f"Unsupported file extension: .{ext}. Please upload a PDF or DOCX file.")
         except Exception as e:
-            print(f"Error parsing resume file ({file_path}): {e}")
+            logger.error(f"Error parsing resume file ({file_path}): {e}")
             raise Exception(f"Failed to extract text from file: {e}")
 
         cleaned_text = text.strip()
@@ -222,7 +223,7 @@ class ResumeIntelligenceService:
             return data
 
         except Exception as err:
-            print(f"Gemini resume analysis error (using fallback parser): {err}")
+            logger.warning(f"Gemini resume analysis error (using fallback parser): {err}")
             return ResumeIntelligenceService.fallback_rule_based_parse(text)
 
     @staticmethod
@@ -301,7 +302,7 @@ class ResumeIntelligenceService:
                     if start != -1 and end != -1:
                         q_data = json.loads(resp_text[start:end+1], strict=False)
         except Exception as err:
-            print(f"Gemini API call failed for questions (using rule-based parser fallback): {err}")
+            logger.warning(f"Gemini API call failed for questions (using rule-based parser fallback): {err}")
             q_data = []
 
         # Fallback question generation if AI returned empty list or error
@@ -421,7 +422,7 @@ class ResumeIntelligenceService:
             )
             return response.choices[0].message.content.strip()
         except Exception as err:
-            print(f"Follow-up question error: {err}")
+            logger.error(f"Follow-up question error: {err}")
             return "How would you handle scaling this implementation if user traffic increased 10x?"
 
     @staticmethod
@@ -482,7 +483,7 @@ class ResumeIntelligenceService:
                 eval_data = json.loads(resp_text[start:end+1], strict=False)
 
         except Exception as err:
-            print(f"Error evaluating resume interview: {err}")
+            logger.error(f"Error evaluating resume interview: {err}")
             eval_data = {
                 "overall_score": 75,
                 "technical_score": 75,
@@ -534,6 +535,6 @@ class ResumeIntelligenceService:
                     db.add(db_eval)
                     db.commit()
         except Exception as gap_err:
-            print(f"Error syncing resume interview knowledge gaps: {gap_err}")
+            logger.error(f"Error syncing resume interview knowledge gaps: {gap_err}")
 
         return eval_data

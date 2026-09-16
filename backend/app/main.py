@@ -131,7 +131,10 @@ origins = [
 
 frontend_url = os.getenv("FRONTEND_URL")
 if frontend_url:
-    origins.append(frontend_url)
+    for url in frontend_url.split(","):
+        cleaned_url = url.strip()
+        if cleaned_url and cleaned_url not in origins:
+            origins.append(cleaned_url)
 
 app.add_middleware(
     CORSMiddleware,

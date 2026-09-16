@@ -239,8 +239,9 @@ const StudyRoom = () => {
             {/* Selectors */}
             <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg mb-8 flex flex-col md:flex-row gap-4">
                 <div className="flex-1">
-                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Curriculum</label>
+                    <label htmlFor="curriculum-select" className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Curriculum</label>
                     <select 
+                        id="curriculum-select"
                         value={selectedCurriculumId}
                         onChange={(e) => {
                             setSelectedCurriculumId(e.target.value);
@@ -256,8 +257,9 @@ const StudyRoom = () => {
                 </div>
                 
                 <div className="flex-1">
-                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Topic</label>
+                    <label htmlFor="topic-select" className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Topic</label>
                     <select 
+                        id="topic-select"
                         value={selectedTopicId}
                         onChange={(e) => {
                             setSelectedTopicId(e.target.value);

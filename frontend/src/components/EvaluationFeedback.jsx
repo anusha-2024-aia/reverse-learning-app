@@ -67,6 +67,7 @@ const EvaluationFeedback = ({ feedback, studentExplanation, onContinue, onRetry 
     const correctVersion = data.correct_version ?? parsedData.correct_version ?? "";
     const followUp = data.follow_up_question ?? parsedData.follow_up_question ?? "";
     const nextRecommendation = data.next_recommendation;
+    const conceptCoverage = data.concept_coverage ?? parsedData.concept_coverage;
 
     const getScoreColor = (s) => {
         if (s >= 80) return { bg: 'bg-emerald-500', text: 'text-emerald-400', border: 'border-emerald-500/50', glow: 'shadow-emerald-500/20' };
@@ -134,6 +135,83 @@ const EvaluationFeedback = ({ feedback, studentExplanation, onContinue, onRetry 
                     </div>
                 )}
             </div>
+
+            {/* Measurable Concept Coverage Section */}
+            {conceptCoverage && conceptCoverage.required_count > 0 && (
+                <div className="p-8 border-b border-slate-700 bg-slate-900/60">
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
+                        <div>
+                            <div className="flex items-center gap-2 text-cyan-400 font-bold text-xs uppercase tracking-widest mb-1">
+                                <Target className="w-4 h-4" /> Measurable Evaluation
+                            </div>
+                            <h3 className="text-xl font-black text-white">Concept Coverage</h3>
+                            <p className="text-xs text-slate-400 mt-1">
+                                Deterministic metric calculated by searching for required topic concepts directly in your text, independent of LLM scoring.
+                            </p>
+                        </div>
+                        
+                        <div className="flex items-center gap-4 bg-slate-800 px-5 py-3 rounded-2xl border border-slate-700 shrink-0">
+                            <div className="text-right">
+                                <div className="text-2xl font-black text-cyan-400">
+                                    {conceptCoverage.coverage_percentage !== null ? `${conceptCoverage.coverage_percentage}%` : 'N/A'}
+                                </div>
+                                <div className="text-xs font-semibold text-slate-400">
+                                    {conceptCoverage.covered_count} / {conceptCoverage.required_count} concepts covered
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Progress Bar */}
+                    {conceptCoverage.coverage_percentage !== null && (
+                        <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden mb-6">
+                            <div 
+                                className="h-full bg-gradient-to-r from-cyan-500 to-indigo-500 rounded-full transition-all duration-500" 
+                                style={{ width: `${conceptCoverage.coverage_percentage}%` }}
+                            />
+                        </div>
+                    )}
+
+                    {/* Covered & Missing Concepts Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Covered Concepts */}
+                        <div className="bg-slate-800/80 p-4 rounded-xl border border-emerald-500/30">
+                            <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                                <CheckCircle2 className="w-4 h-4" /> Covered Concepts ({conceptCoverage.covered_concepts?.length || 0})
+                            </h4>
+                            {conceptCoverage.covered_concepts && conceptCoverage.covered_concepts.length > 0 ? (
+                                <div className="flex flex-wrap gap-2">
+                                    {conceptCoverage.covered_concepts.map((c, i) => (
+                                        <span key={i} className="text-xs px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-300 font-semibold border border-emerald-500/30 flex items-center gap-1">
+                                            ✓ {c}
+                                        </span>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-xs text-slate-500 italic">No required concepts were detected in explanation.</p>
+                            )}
+                        </div>
+
+                        {/* Missing Concepts */}
+                        <div className="bg-slate-800/80 p-4 rounded-xl border border-amber-500/30">
+                            <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                                <AlertTriangle className="w-4 h-4" /> Missing Concepts ({conceptCoverage.missing_concepts?.length || 0})
+                            </h4>
+                            {conceptCoverage.missing_concepts && conceptCoverage.missing_concepts.length > 0 ? (
+                                <div className="flex flex-wrap gap-2">
+                                    {conceptCoverage.missing_concepts.map((c, i) => (
+                                        <span key={i} className="text-xs px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-300 font-semibold border border-amber-500/30 flex items-center gap-1">
+                                            • {c}
+                                        </span>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-xs text-emerald-400 font-semibold">🎉 All required concepts were covered!</p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* 8 Dimension Breakdown */}
             <div className="p-8 border-b border-slate-700 bg-slate-800/80">

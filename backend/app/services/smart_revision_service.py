@@ -3,6 +3,7 @@ from sqlalchemy import asc, desc
 from datetime import datetime, timedelta, timezone
 from app.models import RevisionSchedule, Topic, Evaluation, RoadmapItem
 from app.services.knowledge_gap_engine import analyze_user_knowledge
+from app.core.logging_config import logger
 
 # Rule-Based Centralized Configuration
 LOW_MASTERY_INTERVAL = 1      # Mastery < 60% -> 1 day
@@ -169,7 +170,7 @@ class SmartRevisionService:
             if roadmap_items:
                 db.commit()
         except Exception as sync_err:
-            print(f"Error syncing revision to roadmap: {sync_err}")
+            logger.error(f"Error syncing revision to roadmap: {sync_err}")
 
         return schedule
 

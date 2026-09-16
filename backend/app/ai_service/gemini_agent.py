@@ -90,7 +90,7 @@ async def stream_evaluate_explanation(topic: str, user_explanation: str, learnin
                 yield chunk.choices[0].delta.content
                 
     except Exception as e:
-        print(f"Error in stream_evaluate_explanation: {e}")
+        logger.error(f"Error in stream_evaluate_explanation: {e}")
         err_str = str(e)
         if "permission-denied" in err_str or "403" in err_str or "credits" in err_str.lower():
             user_msg = "Your Google account has an issue with credits or permissions. Please check Google AI Studio."
@@ -129,7 +129,7 @@ async def evaluate_explanation(topic: str, user_explanation: str, learning_mode:
             
         return json.loads(full_text, strict=False)
     except Exception as e:
-        print(f"Parsing error: {e}")
+        logger.error(f"Parsing error: {e}")
         return {
             "score": 0,
             "missing_concepts": ["Parsing Error"],
@@ -169,7 +169,7 @@ async def generate_interview_question(notes: str, previous_qa: list) -> str:
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
-        print(f"Error in generate_interview_question: {e}")
+        logger.error(f"Error in generate_interview_question: {e}")
         return "I encountered an error generating the next question. Please tell me more about your notes."
 
 async def evaluate_interview_performance(notes: str, interview_transcript: list) -> dict:
@@ -247,7 +247,7 @@ async def evaluate_interview_performance(notes: str, interview_transcript: list)
             
         return json.loads(text, strict=False)
     except Exception as e:
-        print(f"Error in evaluate_interview_performance: {e}")
+        logger.error(f"Error in evaluate_interview_performance: {e}")
         return {
             "overall_score": 0,
             "confidence_score": 0,
@@ -294,7 +294,7 @@ async def generate_improvement_insight(attempt_history: list) -> str:
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
-        print(f"Error in generate_improvement_insight: {e}")
+        logger.error(f"Error in generate_improvement_insight: {e}")
         return "Your explanation shows clear progress across your recent attempts. Focus on edge cases and completeness."
 
 async def generate_ai_roadmap(
@@ -384,7 +384,7 @@ async def generate_ai_roadmap(
         return {"status": "success", "topics": validated_topics}
 
     except Exception as e:
-        print(f"Error in generate_ai_roadmap: {e}")
+        logger.error(f"Error in generate_ai_roadmap: {e}")
         return get_fallback_roadmap(target_role, experience_level)
 
 def validate_and_sanitize_roadmap_topics(topics: list, target_role: str) -> list:

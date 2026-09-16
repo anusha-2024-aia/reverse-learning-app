@@ -1,6 +1,7 @@
 import os
 import json
 from app.ai_service.gemini_agent import client, model_name
+from app.core.logging_config import logger
 
 class ResumeParser:
     @staticmethod
@@ -69,7 +70,7 @@ class ResumeParser:
                     data = json.loads(resp_text, strict=False)
             return data
         except Exception as e:
-            print(f"Error parsing resume with AI: {e}")
+            logger.error(f"Error parsing resume with AI: {e}")
             return None
 
     @staticmethod
@@ -88,6 +89,6 @@ class ResumeParser:
                 for para in doc.paragraphs:
                     text += para.text + "\n"
         except Exception as e:
-            print(f"Error reading file {file_path}: {e}")
+            logger.error(f"Error reading file {file_path}: {e}")
             return None
         return text

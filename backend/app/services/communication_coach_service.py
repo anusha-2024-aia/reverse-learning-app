@@ -5,6 +5,7 @@ from typing import Optional, List
 from sqlalchemy.orm import Session
 from app import models
 from app.ai_service.gemini_agent import client, model_name
+from app.core.logging_config import logger
 
 COMMON_FILLERS = [
     "um", "uh", "like", "actually", "basically", "you know", "so", "i mean"
@@ -234,7 +235,7 @@ class CommunicationCoachService:
                 "ai_coach_recommendation": data.get("ai_coach_recommendation", "Focus on clear sentence structure.")
             }
         except Exception as err:
-            print(f"Gemini communication quality analysis error: {err}")
+            logger.error(f"Gemini communication quality analysis error: {err}")
             return {
                 "clarity_score": 75,
                 "grammar_score": 72,

@@ -7,10 +7,12 @@ from app import models
 from app.auth import get_current_user
 from app.rate_limiter import rate_limit_authenticated
 from app.services.resume_intelligence_service import ResumeIntelligenceService
+from app.core.logging_config import logger
 
 router = APIRouter()
 
 doc_rate_limit = rate_limit_authenticated(default_limit=3, window_seconds=60, env_var_name="DOCUMENT_RATE_LIMIT")
+resume_rate_limit = rate_limit_authenticated(default_limit=5, window_seconds=60, env_var_name="RESUME_RATE_LIMIT")
 
 import uuid
 
@@ -65,7 +67,7 @@ async def upload_resume(
     try:
         structured_data = await ResumeIntelligenceService.analyze_and_structure_resume(extracted_text)
     except Exception as ai_err:
-        print(f"Error in resume analysis (using rule-based parser): {ai_err}")
+        logger.warning(f"Error in resume analysis (using rule-based parser): {ai_err}")
         structured_data = ResumeIntelligenceService.fallback_rule_based_parse(extracted_text)
 
     # Save new active Resume record
@@ -297,7 +299,7 @@ def start_resume_interview(
 async def answer_resume_interview_question(
     payload: dict = Body(...),
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user)
+    current_user: models.User = Depends(resume_rate_limit)
 ):
     """
     Processes candidate answer during resume interview, returns follow-up question or final evaluation report.

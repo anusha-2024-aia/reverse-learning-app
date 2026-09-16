@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, asc, literal
 from app.models import User, Evaluation, Interview, Topic, LearningActivity
 from app.services import insights_service, knowledge_gap_engine
+from app.core.logging_config import logger
 
 def calculate_technical_mastery(db: Session, user_id: int):
     # Avg of evaluation AI scores and interview technical scores
@@ -178,7 +179,7 @@ def generate_dashboard_data(db: Session, user_id: int):
         from app.services.roadmap_service import RoadmapService
         roadmap_info = RoadmapService.get_my_roadmap(db, user_id)
     except Exception as rm_err:
-        print(f"Dashboard roadmap info error: {rm_err}")
+        logger.error(f"Dashboard roadmap info error: {rm_err}")
     
     return {
         "user": {

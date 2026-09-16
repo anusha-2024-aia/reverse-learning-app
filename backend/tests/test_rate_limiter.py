@@ -175,5 +175,24 @@ class TestRateLimiter(unittest.TestCase):
         )
         self.assertNotEqual(res_b.status_code, 429, "User B should not be rate-limited by User A's activity.")
 
+    @patch("app.services.resume_intelligence_service.ResumeIntelligenceService.generate_followup_question")
+    def test_resume_interview_answer_rate_limiting(self, mock_followup):
+        """Verify POST /api/resume/interview/answer is rate limited and blocks excessive calls."""
+        mock_followup.return_value = "What is the complexity of your algorithm?"
+        
+        hit_429 = False
+        for _ in range(10):
+            res = client.post(
+                "/api/resume/interview/answer",
+                json={"interview_id": 999, "answer": "Used binary search.", "is_final": False},
+                headers=self.headers_user_a
+            )
+            if res.status_code == 429:
+                hit_429 = True
+                self.assertIn("Retry-After", res.headers)
+                break
+
+        self.assertTrue(hit_429, "Resume interview answer endpoint should be rate-limited after 5 requests.")
+
 if __name__ == "__main__":
     unittest.main()

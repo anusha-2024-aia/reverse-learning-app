@@ -10,9 +10,10 @@ from app.services.adaptive_learning_engine import calculate_next_recommendation
 from app.services.activity_service import ActivityService
 from app.services.roadmap_service import RoadmapService
 from app.services.smart_revision_service import SmartRevisionService
+from app.services.concept_coverage_service import calculate_concept_coverage
 from app.auth import get_current_user
 from app.rate_limiter import rate_limit_authenticated
-from typing import List, Optional
+from app.core.logging_config import logger
 
 router = APIRouter()
 
@@ -48,12 +49,19 @@ async def evaluate_user_explanation(evaluation: schemas.EvaluationCreate, db: Se
     
     attempt_number = len(previous_evals) + 1
     
+    # Calculate deterministic concept coverage metric
+    concept_coverage = calculate_concept_coverage(
+        explanation=evaluation.explanation,
+        topic_name=topic.name
+    )
+    
     # Get AI Evaluation
     ai_result = await evaluate_explanation(
         topic=topic.name,
         user_explanation=evaluation.explanation,
         learning_mode=evaluation.learning_mode
     )
+    ai_result["concept_coverage"] = concept_coverage
     
     # Extract 8 dimension scores safely
     tech = extract_score(ai_result.get("technicalAccuracy"))
@@ -152,7 +160,7 @@ async def evaluate_user_explanation(evaluation: schemas.EvaluationCreate, db: Se
     try:
         SmartRevisionService.update_revision_schedule(db, current_user.id, evaluation.topic_id, overall_score)
     except Exception as rev_err:
-        print(f"SmartRevisionService update error: {rev_err}")
+        logger.error(f"SmartRevisionService update error: {rev_err}")
 
     next_rec = calculate_next_recommendation(db, current_user.id)
 
@@ -161,7 +169,7 @@ async def evaluate_user_explanation(evaluation: schemas.EvaluationCreate, db: Se
     try:
         RoadmapService.recalculate_roadmap(db, current_user.id)
     except Exception as r_err:
-        print(f"Roadmap recalculation after eval error: {r_err}")
+        logger.error(f"Roadmap recalculation after eval error: {r_err}")
     
     # Log activity for streak
     ActivityService.log_activity(db, current_user.id, "evaluation")
@@ -188,6 +196,7 @@ async def evaluate_user_explanation(evaluation: schemas.EvaluationCreate, db: Se
         "attempt_number": attempt_number,
         "improvement_points": improvement_points,
         "ai_insight": ai_insight,
+        "concept_coverage": concept_coverage,
         "dimensions": dimensions,
         "strengths": strengths,
         "weaknesses": weaknesses,
