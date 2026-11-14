@@ -1,7 +1,11 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Float, Boolean, Date
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Float, Boolean, Date, and_, or_
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from .database import Base
+
+# Synthetic interview weakness prefixes
+RESUME_WEAKNESS_PREFIX = "Resume Interview weakness identified in "
+ADAPTIVE_WEAKNESS_PREFIX = "Identified weak performance during Adaptive Interview on "
 
 class User(Base):
     __tablename__ = "users"
@@ -91,6 +95,40 @@ class Evaluation(Base):
     filler_words = Column(Integer, nullable=True)
     
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    @classmethod
+    def genuine_predicate(cls):
+        """
+        SQLAlchemy filter condition matching genuine study evaluations
+        and excluding synthetic interview weakness records.
+        Safely handles nullable explanation values and preserves genuine historical evaluations
+        where ai_feedback_json is NULL (e.g. legacy Phase 1 evaluations).
+        """
+        return and_(
+            or_(
+                cls.explanation.is_(None),
+                and_(
+                    ~cls.explanation.like(f"{RESUME_WEAKNESS_PREFIX}%"),
+                    ~cls.explanation.like(f"{ADAPTIVE_WEAKNESS_PREFIX}%")
+                )
+            )
+        )
+
+    @classmethod
+    def synthetic_predicate(cls):
+        """
+        SQLAlchemy filter condition matching synthetic interview weakness records.
+        """
+        return or_(
+            cls.explanation.like(f"{RESUME_WEAKNESS_PREFIX}%"),
+            cls.explanation.like(f"{ADAPTIVE_WEAKNESS_PREFIX}%")
+        )
+
+def is_genuine_evaluation_predicate(eval_model=Evaluation):
+    """
+    Module-level helper returning an SQLAlchemy filter predicate for genuine study evaluations.
+    """
+    return eval_model.genuine_predicate()
 
 # ------------ NEW TIER 3 MODELS ------------
 

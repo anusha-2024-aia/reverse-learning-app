@@ -34,9 +34,13 @@ class TestDatabaseConfig(unittest.TestCase):
 
     def test_postgres_special_character_password_normalization(self):
         """Verify PostgreSQL URLs with unencoded special characters in password are safely URL encoded."""
-        raw_url = "postgresql://postgres.kybdgnxilghfushektao:Sanu@2006@3*&@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres"
+        raw_url = "postgresql://test_user:P@ss#word&123@db.test-server.example:5432/testdb"
         normalized_url = normalize_database_url(raw_url)
-        self.assertIn("Sanu%402006%403%2A%26", normalized_url)
+        self.assertEqual(
+            normalized_url,
+            "postgresql://test_user:P%40ss%23word%26123@db.test-server.example:5432/testdb"
+        )
+        self.assertIn("P%40ss%23word%26123", normalized_url)
         self.assertTrue(normalized_url.startswith("postgresql://"))
 
     def test_postgresql_engine_configuration(self):

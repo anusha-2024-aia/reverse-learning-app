@@ -23,7 +23,7 @@ class MockStreamResponse:
         # Yield the content as a single chunk for simplicity in mocking
         yield MockChunk(self._content)
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @patch("app.ai_service.gemini_agent.client.chat.completions.create")
 async def test_evaluate_explanation_perfect_score(mock_create):
     mock_json = {
@@ -44,7 +44,7 @@ async def test_evaluate_explanation_perfect_score(mock_create):
     assert len(result["weaknesses"]) == 0
     assert result["summary"] == "Excellent explanation with perfect grammar."
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @patch("app.ai_service.gemini_agent.client.chat.completions.create")
 async def test_evaluate_explanation_errors_found(mock_create):
     mock_json = {

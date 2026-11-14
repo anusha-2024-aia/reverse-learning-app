@@ -1,12 +1,29 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, asc
-from datetime import datetime, timedelta, timezone
+import datetime as _dt_module
+from datetime import datetime, timedelta, timezone, date
 from app.models import Evaluation, Topic, Curriculum
 import json
 
+def _coerce_to_date(val) -> date:
+    """
+    Safely converts a datetime.datetime, datetime.date, or ISO date string (YYYY-MM-DD)
+    into a datetime.date object, ensuring compatibility across SQLite and PostgreSQL.
+    """
+    if isinstance(val, _dt_module.datetime):
+        return val.date()
+    if isinstance(val, _dt_module.date):
+        return val
+    if isinstance(val, str):
+        clean_val = val.strip()
+        if len(clean_val) >= 10:
+            return _dt_module.datetime.strptime(clean_val[:10], "%Y-%m-%d").date()
+    raise TypeError(f"Cannot coerce value of type {type(val).__name__} to datetime.date: {val!r}")
+
 def calculate_streak(db: Session, user_id: int):
     evals = db.query(func.date(Evaluation.created_at)).filter(
-        Evaluation.user_id == user_id
+        Evaluation.user_id == user_id,
+        Evaluation.genuine_predicate()
     ).distinct().order_by(desc(func.date(Evaluation.created_at))).all()
     
     if not evals:
@@ -16,13 +33,13 @@ def calculate_streak(db: Session, user_id: int):
     current_date = datetime.now(timezone.utc).date()
     
     # Check if they evaluated today or yesterday
-    last_eval_date = datetime.strptime(evals[0][0], "%Y-%m-%d").date()
+    last_eval_date = _coerce_to_date(evals[0][0])
     if (current_date - last_eval_date).days > 1:
         return 0
         
     check_date = last_eval_date
-    for eval_date_str in evals:
-        eval_date = datetime.strptime(eval_date_str[0], "%Y-%m-%d").date()
+    for eval_row in evals:
+        eval_date = _coerce_to_date(eval_row[0])
         if eval_date == check_date:
             streak += 1
             check_date -= timedelta(days=1)
@@ -32,7 +49,10 @@ def calculate_streak(db: Session, user_id: int):
     return streak
 
 def get_summary_stats(db: Session, user_id: int):
-    total_evals = db.query(Evaluation).filter(Evaluation.user_id == user_id).count()
+    total_evals = db.query(Evaluation).filter(
+        Evaluation.user_id == user_id,
+        Evaluation.genuine_predicate()
+    ).count()
     if total_evals == 0:
         return {
             "total_evaluations": 0, "average_score": 0, "total_sessions": 0,
@@ -41,27 +61,43 @@ def get_summary_stats(db: Session, user_id: int):
         }
         
     avg_score = db.query(func.avg(Evaluation.ai_score)).filter(
-        Evaluation.user_id == user_id, Evaluation.ai_score != None
+        Evaluation.user_id == user_id,
+        Evaluation.ai_score != None,
+        Evaluation.genuine_predicate()
     ).scalar() or 0
     
     days_active = db.query(func.count(func.distinct(func.date(Evaluation.created_at)))).filter(
-        Evaluation.user_id == user_id
+        Evaluation.user_id == user_id,
+        Evaluation.genuine_predicate()
     ).scalar() or 0
     
-    best_score = db.query(func.max(Evaluation.ai_score)).filter(Evaluation.user_id == user_id).scalar() or 0
-    worst_score = db.query(func.min(Evaluation.ai_score)).filter(Evaluation.user_id == user_id, Evaluation.ai_score != None).scalar() or 0
+    best_score = db.query(func.max(Evaluation.ai_score)).filter(
+        Evaluation.user_id == user_id,
+        Evaluation.genuine_predicate()
+    ).scalar() or 0
+    worst_score = db.query(func.min(Evaluation.ai_score)).filter(
+        Evaluation.user_id == user_id,
+        Evaluation.ai_score != None,
+        Evaluation.genuine_predicate()
+    ).scalar() or 0
     
     # Most studied topic
     most_topic = db.query(Topic.name, func.count(Evaluation.id).label('count')).join(
         Evaluation, Topic.id == Evaluation.topic_id
-    ).filter(Evaluation.user_id == user_id).group_by(Topic.name).order_by(desc('count')).first()
+    ).filter(
+        Evaluation.user_id == user_id,
+        Evaluation.genuine_predicate()
+    ).group_by(Topic.name).order_by(desc('count')).first()
     
     # Most studied curriculum
     most_curr = db.query(Curriculum.name, func.count(Evaluation.id).label('count')).join(
         Topic, Curriculum.id == Topic.curriculum_id
     ).join(
         Evaluation, Topic.id == Evaluation.topic_id
-    ).filter(Evaluation.user_id == user_id).group_by(Curriculum.name).order_by(desc('count')).first()
+    ).filter(
+        Evaluation.user_id == user_id,
+        Evaluation.genuine_predicate()
+    ).group_by(Curriculum.name).order_by(desc('count')).first()
     
     return {
         "total_evaluations": total_evals,
@@ -85,10 +121,18 @@ def calculate_score_trend(db: Session, user_id: int, days: int = 7):
     ).filter(
         Evaluation.user_id == user_id,
         Evaluation.created_at >= cutoff,
-        Evaluation.ai_score != None
+        Evaluation.ai_score != None,
+        Evaluation.genuine_predicate()
     ).group_by('date').order_by('date').all()
     
-    trend_data = [{"date": stat.date, "average_score": round(stat.avg_score, 1), "count": stat.count} for stat in daily_stats]
+    trend_data = [
+        {
+            "date": _coerce_to_date(stat.date).isoformat(),
+            "average_score": round(stat.avg_score, 1),
+            "count": stat.count
+        }
+        for stat in daily_stats
+    ]
     
     overall_trend = "stable"
     if len(trend_data) > 1:
@@ -112,7 +156,8 @@ def get_weak_topics(db: Session, user_id: int, limit: int = 5):
         Evaluation, Topic.id == Evaluation.topic_id
     ).filter(
         Evaluation.user_id == user_id,
-        Evaluation.ai_score != None
+        Evaluation.ai_score != None,
+        Evaluation.genuine_predicate()
     ).group_by(Topic.id, Topic.name).order_by(asc('avg_score')).limit(limit).all()
     
     return {"weak_topics": [{"topic_id": w.topic_id, "topic_name": w.topic_name, "avg_score": round(w.avg_score, 1), "attempts": w.attempts, "best_score": w.best_score} for w in weak]}
@@ -128,7 +173,8 @@ def get_strong_topics(db: Session, user_id: int, limit: int = 5):
         Evaluation, Topic.id == Evaluation.topic_id
     ).filter(
         Evaluation.user_id == user_id,
-        Evaluation.ai_score != None
+        Evaluation.ai_score != None,
+        Evaluation.genuine_predicate()
     ).group_by(Topic.id, Topic.name).having(func.count(Evaluation.id) > 0).order_by(desc('avg_score')).limit(limit).all()
     
     return {"strong_topics": [{"topic_id": s.topic_id, "topic_name": s.topic_name, "avg_score": round(s.avg_score, 1), "attempts": s.attempts, "best_score": s.best_score} for s in strong]}
@@ -164,14 +210,20 @@ def get_ai_insight(db: Session, user_id: int):
 def get_most_improved_topics(db: Session, user_id: int, limit: int = 5):
     # This requires looking at first attempt vs latest attempt.
     # We will do this mostly in Python since SQL for first/last in SQLite is tricky.
-    topics = db.query(Topic).join(Evaluation).filter(Evaluation.user_id == user_id).distinct().all()
+    topics = db.query(Topic).join(
+        Evaluation, Topic.id == Evaluation.topic_id
+    ).filter(
+        Evaluation.user_id == user_id,
+        Evaluation.genuine_predicate()
+    ).distinct().all()
     
     improvements = []
     for t in topics:
         evals = db.query(Evaluation).filter(
             Evaluation.topic_id == t.id, 
             Evaluation.user_id == user_id,
-            Evaluation.ai_score != None
+            Evaluation.ai_score != None,
+            Evaluation.genuine_predicate()
         ).order_by(Evaluation.created_at).all()
         
         if len(evals) >= 2:
@@ -200,7 +252,8 @@ def get_most_attempted_topics(db: Session, user_id: int, limit: int = 5):
     ).join(
         Evaluation, Topic.id == Evaluation.topic_id
     ).filter(
-        Evaluation.user_id == user_id
+        Evaluation.user_id == user_id,
+        Evaluation.genuine_predicate()
     ).group_by(Topic.id, Topic.name).order_by(desc('attempts')).limit(limit).all()
     
     return {"most_attempted": [{"topic_id": m.topic_id, "topic_name": m.topic_name, "attempts": m.attempts, "average_score": round(m.avg_score or 0, 1)} for m in most]}
@@ -209,7 +262,8 @@ def get_grammar_trend(db: Session, user_id: int, days: int = 30):
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
     evals = db.query(Evaluation).filter(
         Evaluation.user_id == user_id,
-        Evaluation.created_at >= cutoff
+        Evaluation.created_at >= cutoff,
+        Evaluation.genuine_predicate()
     ).order_by(Evaluation.created_at).all()
     
     daily_stats = {}
@@ -260,7 +314,8 @@ def get_curriculum_stats(db: Session, user_id: int):
         for t in topics:
             evals = db.query(Evaluation).filter(
                 Evaluation.topic_id == t.id, 
-                Evaluation.user_id == user_id
+                Evaluation.user_id == user_id,
+                Evaluation.genuine_predicate()
             ).all()
             
             if evals:

@@ -4,18 +4,20 @@ class SpacedRepetition:
     @staticmethod
     def calculate_next_review(mastery_score: float, attempts: int, current_score: int) -> datetime:
         """
-        Simple SM-2 inspired spaced repetition logic.
+        Simple SM-2 inspired spaced repetition logic on 0-100 score scale.
         """
         base_interval_hours = 24
+        safe_score = float(current_score)
+        safe_mastery = max(0.0, min(100.0, float(mastery_score)))
         
         # If they scored poorly, review sooner
-        if current_score < 6:
-            interval_multiplier = 0.5 # 12 hours
-        elif current_score < 8:
-            interval_multiplier = 1.0 # 1 day
+        if safe_score < 60:
+            interval_multiplier = 0.5 # 12 hours (base)
+        elif safe_score < 80:
+            interval_multiplier = 1.0 # 1 day (base)
         else:
             # Good score, extend interval based on previous mastery
-            interval_multiplier = 1.5 + (mastery_score / 50.0) # 1.5 to 3.5 days
+            interval_multiplier = 1.5 + (safe_mastery / 50.0) # 1.5 to 3.5 days (base)
             
         # Scale with number of attempts (if they've seen it many times, interval grows)
         attempt_multiplier = 1.0 + (attempts * 0.2)

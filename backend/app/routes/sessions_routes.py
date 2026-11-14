@@ -8,10 +8,6 @@ router = APIRouter()
 
 from app.auth import get_current_user
 
-@router.get("/topics", response_model=List[schemas.TopicOut])
-def get_topics(db: Session = Depends(get_db)):
-    return db.query(models.Topic).all()
-
 @router.post("/sessions", response_model=schemas.SessionOut)
 def create_session(session: schemas.SessionCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     topic = db.query(models.Topic).filter(models.Topic.id == session.topic_id).first()

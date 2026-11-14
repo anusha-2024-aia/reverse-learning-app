@@ -61,7 +61,11 @@ def get_curriculum_progress(
     topic_progress = []
     
     for t in topics:
-        evals = db.query(Evaluation).filter(Evaluation.topic_id == t.id, Evaluation.user_id == current_user.id).all()
+        evals = db.query(Evaluation).filter(
+            Evaluation.topic_id == t.id,
+            Evaluation.user_id == current_user.id,
+            Evaluation.genuine_predicate()
+        ).all()
         best_score = max([e.ai_score for e in evals if e.ai_score is not None], default=None) if evals else None
         attempts_count = len(evals)
         last_attempt = max([e.created_at for e in evals], default=None) if evals else None

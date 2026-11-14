@@ -58,7 +58,7 @@ def calculate_priority_score(gap, attempt_count, last_attempt_days_ago):
     # Recency modifier (if attempted recently and failed, high priority)
     # If not attempted in a long time and score is low, also high priority
     recency_bonus = 0
-    if gap['mastery_score'] < 70 and last_attempt_days_ago < 3:
+    if attempt_count > 0 and gap['mastery_score'] < 70 and last_attempt_days_ago < 3:
         recency_bonus = 15 # Repeated recent failure
     
     return min(100, base_priority + weakness_bonus + recency_bonus)
@@ -75,7 +75,8 @@ def get_target_concept_from_gap(db: Session, topic_id: int, user_id: int):
     evals = db.query(Evaluation).filter(
         Evaluation.user_id == user_id, 
         Evaluation.topic_id == topic_id,
-        Evaluation.ai_score != None
+        Evaluation.ai_score != None,
+        Evaluation.genuine_predicate()
     ).order_by(desc(Evaluation.created_at)).limit(3).all()
     
     # In a real scenario, we might parse ai_feedback_json for specific gap concepts.
@@ -93,16 +94,17 @@ def generate_user_learning_path(db: Session, user_id: int):
     now = datetime.datetime.now(datetime.timezone.utc)
     
     for gap in gaps:
-        # Get attempt stats
+        # Get attempt stats from genuine evaluations
         evals = db.query(Evaluation).filter(
             Evaluation.user_id == user_id, 
             Evaluation.topic_id == gap['topic_id'],
-            Evaluation.ai_score != None
+            Evaluation.ai_score != None,
+            Evaluation.genuine_predicate()
         ).order_by(desc(Evaluation.created_at)).all()
         
-        attempt_count = gap['attempts']
+        attempt_count = len(evals)
         
-        last_attempt_days_ago = 0
+        last_attempt_days_ago = 999
         if evals:
             last_eval = evals[0]
             # Ensure last_eval.created_at is timezone-aware

@@ -155,16 +155,17 @@ async def complete_revision_session(
     
     new_mastery = float(eval_result.get("overall_score", 0))
 
-    # Update RevisionSchedule
-    updated_sched = SmartRevisionService.update_revision_schedule(
-        db=db,
-        user_id=current_user.id,
-        topic_id=topic_id,
-        new_mastery_score=new_mastery
-    )
+    # Fetch updated RevisionSchedule (updated by evaluate_user_explanation pipeline)
+    updated_sched = db.query(models.RevisionSchedule).filter(
+        models.RevisionSchedule.user_id == current_user.id,
+        models.RevisionSchedule.topic_id == topic_id
+    ).first()
 
     improvement = round(new_mastery - previous_mastery, 1)
-    interval_days = SmartRevisionService.calculate_revision_interval(new_mastery)
+    if updated_sched and updated_sched.next_review_at and updated_sched.last_reviewed_at:
+        interval_days = (updated_sched.next_review_at.date() - updated_sched.last_reviewed_at.date()).days
+    else:
+        interval_days = SmartRevisionService.calculate_revision_interval(new_mastery)
 
     next_review_str = "In 1 day" if interval_days == 1 else f"In {interval_days} days"
 

@@ -53,7 +53,10 @@ __pycache__/
 backend/study.db
 backend/sql_app.db
 *.db
+*.db-*
+*.db.backup*
 backend/uploads/
+uploads/
 backend/tmp/
 
 # Temporary/test files
@@ -61,3 +64,5 @@ backend/requirements-old.txt
 backend/add_columns.py
 backend/test_api.py
 backend/test_eval.py
+# Local test environment secrets
+backend/.env.test

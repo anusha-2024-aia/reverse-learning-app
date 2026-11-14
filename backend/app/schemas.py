@@ -1,6 +1,6 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Literal
 
 class TopicOut(BaseModel):
     id: int
@@ -24,7 +24,20 @@ class SessionOut(BaseModel):
 class EvaluationCreate(BaseModel):
     topic_id: int
     explanation: str
-    learning_mode: str = "general"
+    learning_mode: Literal["general", "technical", "fluency", "explain"] = "general"
+
+    @field_validator("learning_mode", mode="before")
+    @classmethod
+    def validate_learning_mode(cls, v):
+        if v is None:
+            return "general"
+        if not isinstance(v, str):
+            raise ValueError("learning_mode must be a string")
+        clean = v.strip().lower()
+        allowed = {"general", "technical", "fluency", "explain"}
+        if clean not in allowed:
+            raise ValueError(f"Invalid learning_mode. Must be one of: {sorted(allowed)}")
+        return clean
 
 class DimensionDetail(BaseModel):
     score: int

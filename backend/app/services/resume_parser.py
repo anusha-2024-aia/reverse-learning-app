@@ -8,13 +8,16 @@ class ResumeParser:
     async def parse_resume(file_path: str):
         """
         Extracts text from PDF/DOCX and uses Gemini to extract skills, projects, and experience.
+        Falls back to rule-based parser without fabricating data if AI service is unavailable.
         """
         text = ResumeParser._extract_text(file_path)
         if not text:
             return None
             
+        from app.services.resume_intelligence_service import ResumeIntelligenceService
+
         if not client:
-            raise Exception("GEMINI_API_KEY is not configured.")
+            return ResumeIntelligenceService.fallback_rule_based_parse(text)
             
         system_prompt = f"""
         You are an expert technical recruiter and resume parser.
@@ -68,10 +71,18 @@ class ResumeParser:
                     data = json.loads(resp_text[start:end+1], strict=False)
                 else:
                     data = json.loads(resp_text, strict=False)
-            return data
+
+            if isinstance(data, dict):
+                data["skills"] = [s for s in data.get("skills", []) if isinstance(s, str)] if isinstance(data.get("skills"), list) else []
+                data["projects"] = [p for p in data.get("projects", []) if isinstance(p, dict)] if isinstance(data.get("projects"), list) else []
+                data["experience"] = [e for e in data.get("experience", []) if isinstance(e, dict)] if isinstance(data.get("experience"), list) else []
+                data["education"] = [ed for ed in data.get("education", []) if isinstance(ed, dict)] if isinstance(data.get("education"), list) else []
+                return data
+
+            return ResumeIntelligenceService.fallback_rule_based_parse(text)
         except Exception as e:
-            logger.error(f"Error parsing resume with AI: {e}")
-            return None
+            logger.warning(f"Error parsing resume with AI (using fallback): {e}")
+            return ResumeIntelligenceService.fallback_rule_based_parse(text)
 
     @staticmethod
     def _extract_text(file_path: str) -> str:
@@ -80,15 +91,32 @@ class ResumeParser:
         try:
             if ext == '.pdf':
                 import fitz # PyMuPDF
-                doc = fitz.open(file_path)
-                for page in doc:
-                    text += page.get_text()
+                with open(file_path, "rb") as f:
+                    pdf_bytes = f.read()
+                with fitz.open(stream=pdf_bytes, filetype="pdf") as doc:
+                    for page in doc:
+                        text += page.get_text() + "\n"
             elif ext == '.docx':
                 import docx
-                doc = docx.Document(file_path)
+                import io
+                with open(file_path, "rb") as f:
+                    docx_bytes = f.read()
+                doc = docx.Document(io.BytesIO(docx_bytes))
                 for para in doc.paragraphs:
-                    text += para.text + "\n"
+                    if para.text.strip():
+                        text += para.text + "\n"
+                for table in doc.tables:
+                    for row in table.rows:
+                        row_items = []
+                        seen_cells = set()
+                        for cell in row.cells:
+                            ctext = cell.text.strip()
+                            if ctext and ctext not in seen_cells:
+                                seen_cells.add(ctext)
+                                row_items.append(ctext)
+                        if row_items:
+                            text += " | ".join(row_items) + "\n"
         except Exception as e:
             logger.error(f"Error reading file {file_path}: {e}")
             return None
-        return text
+        return text.strip() if text else None

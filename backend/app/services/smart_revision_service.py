@@ -48,13 +48,15 @@ class SmartRevisionService:
             
         interval_days = SmartRevisionService.calculate_revision_interval(mastery_score)
         
-        # Knowledge Gap Override: If unresolved knowledge gap exists, cap interval sooner
-        if has_knowledge_gap and interval_days > 3:
-            interval_days = 3
-            
-        # Downward Performance Trend: If score is declining, shorten interval
-        if trend == "DECLINING" and interval_days > 3:
-            interval_days = 3
+        # Knowledge Gap or Declining Trend Acceleration:
+        # If an existing knowledge gap or declining trend is present:
+        # - Mastery below 70: maximum 1-day interval.
+        # - Mastery 70 or above: maximum 3-day interval.
+        if has_knowledge_gap or trend == "DECLINING":
+            if float(mastery_score) < 70.0:
+                interval_days = min(interval_days, 1)
+            else:
+                interval_days = min(interval_days, 3)
 
         return last_reviewed_at + timedelta(days=interval_days)
 
@@ -152,7 +154,7 @@ class SmartRevisionService:
         db.commit()
         db.refresh(schedule)
 
-        # Sync with Phase 5 RoadmapItem if exists
+        # Sync mastery score with Phase 5 RoadmapItem if exists
         try:
             roadmap_items = db.query(RoadmapItem).filter(
                 RoadmapItem.user_id == user_id,
@@ -161,12 +163,6 @@ class SmartRevisionService:
             for r_item in roadmap_items:
                 r_item.mastery_score = new_mastery_score
                 r_item.last_evaluated_at = now
-                if new_mastery_score >= 80.0:
-                    r_item.status = "MASTERED"
-                elif new_mastery_score < 60.0:
-                    r_item.status = "WEAK"
-                else:
-                    r_item.status = "IN_PROGRESS"
             if roadmap_items:
                 db.commit()
         except Exception as sync_err:
@@ -214,11 +210,16 @@ class SmartRevisionService:
             target_concept = topic_gap.get("recommendation", "") if topic_gap else None
             trend = topic_gap.get("trend", "STABLE") if topic_gap else "STABLE"
 
-            # Fetch attempts count from Evaluation table
-            attempt_count = db.query(Evaluation).filter(
-                Evaluation.user_id == user_id,
-                Evaluation.topic_id == topic.id
-            ).count()
+            # Fetch genuine study evaluation scores for this topic
+            genuine_eval_scores = [
+                e.ai_score for e in db.query(Evaluation.ai_score).filter(
+                    Evaluation.user_id == user_id,
+                    Evaluation.topic_id == topic.id,
+                    Evaluation.genuine_predicate()
+                ).all() if e.ai_score is not None
+            ]
+            attempt_count = len(genuine_eval_scores)
+            failed_attempts = sum(1 for s in genuine_eval_scores if s < 70.0)
 
             # Calculate Priority
             priority = SmartRevisionService.calculate_priority_score(
@@ -226,7 +227,7 @@ class SmartRevisionService:
                 has_knowledge_gap=has_knowledge_gap,
                 trend=trend,
                 status=status,
-                failed_attempts=max(0, attempt_count - 1)
+                failed_attempts=failed_attempts
             )
 
             # Days relative to today
@@ -314,7 +315,10 @@ class SmartRevisionService:
         """
         evals = db.query(Evaluation, Topic).join(
             Topic, Evaluation.topic_id == Topic.id
-        ).filter(Evaluation.user_id == user_id).order_by(Evaluation.created_at.asc()).all()
+        ).filter(
+            Evaluation.user_id == user_id,
+            Evaluation.genuine_predicate()
+        ).order_by(Evaluation.created_at.asc()).all()
 
         topic_evals = {}
         for e, t in evals:

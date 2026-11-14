@@ -96,12 +96,16 @@ def get_user_metrics(db: Session, user_id: int):
     """
     Calculates genuine user activity metrics for backend condition checks.
     """
-    evals = db.query(Evaluation).filter(Evaluation.user_id == user_id).all()
+    evals = db.query(Evaluation).filter(
+        Evaluation.user_id == user_id,
+        Evaluation.genuine_predicate()
+    ).all()
     eval_count = len(evals)
     explanation_count = sum(1 for e in evals if e.explanation and len(e.explanation.strip()) > 0)
     
     distinct_concepts = db.query(func.count(func.distinct(Evaluation.topic_id))).filter(
-        Evaluation.user_id == user_id
+        Evaluation.user_id == user_id,
+        Evaluation.genuine_predicate()
     ).scalar() or 0
 
     streak_info = ActivityService.get_streak_info(db, user_id)

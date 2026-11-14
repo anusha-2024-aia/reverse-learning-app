@@ -178,7 +178,11 @@ class RoadmapService:
                 # Check evaluations directly by topic_id or topic_name if gap engine missed it
                 evals = []
                 if item.topic_id:
-                    evals = db.query(Evaluation).filter(Evaluation.user_id == user_id, Evaluation.topic_id == item.topic_id).all()
+                    evals = db.query(Evaluation).filter(
+                        Evaluation.user_id == user_id,
+                        Evaluation.topic_id == item.topic_id,
+                        Evaluation.genuine_predicate()
+                    ).all()
                 if evals:
                     scores = [e.overall_score or e.ai_score or 0 for e in evals]
                     mastery = float(scores[-1])

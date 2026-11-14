@@ -1,5 +1,6 @@
 import json
 from datetime import datetime, timezone
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from app import models
 from app.ai_service.gemini_agent import client, model_name
@@ -524,22 +525,36 @@ class AdaptiveInterviewService:
 
         # Connect weak topics to Knowledge Gap Engine & Adaptive Recommendations
         try:
-            for w_topic in weak_topics:
-                topic_db = db.query(models.Topic).filter(
-                    models.Topic.name.ilike(f"%{w_topic}%")
-                ).first()
+            if isinstance(weak_topics, list):
+                processed_topic_ids = set()
+                seen_names = set()
+                for w_topic in weak_topics:
+                    if not isinstance(w_topic, str):
+                        continue
+                    clean_w = w_topic.strip()
+                    if not clean_w:
+                        continue
+                    lookup_key = clean_w.lower()
+                    if lookup_key in seen_names:
+                        continue
+                    seen_names.add(lookup_key)
 
-                if topic_db:
-                    db_eval = models.Evaluation(
-                        user_id=user_id,
-                        topic_id=topic_db.id,
-                        explanation=f"Identified weak performance during Adaptive Interview on '{w_topic}'",
-                        overall_score=min(55, avg_tech),
-                        ai_score=min(55, avg_tech),
-                        ai_insight=f"Identified weakness in '{w_topic}' during Adaptive Interview."
-                    )
-                    db.add(db_eval)
-                    db.commit()
+                    topic_db = db.query(models.Topic).filter(
+                        func.lower(models.Topic.name) == lookup_key
+                    ).first()
+
+                    if topic_db and topic_db.id not in processed_topic_ids:
+                        processed_topic_ids.add(topic_db.id)
+                        db_eval = models.Evaluation(
+                            user_id=user_id,
+                            topic_id=topic_db.id,
+                            explanation=f"Identified weak performance during Adaptive Interview on '{clean_w}'",
+                            overall_score=min(55, avg_tech),
+                            ai_score=min(55, avg_tech),
+                            ai_insight=f"Identified weakness in '{clean_w}' during Adaptive Interview."
+                        )
+                        db.add(db_eval)
+                        db.commit()
         except Exception as gap_err:
             logger.error(f"Error syncing knowledge gaps from interview: {gap_err}")
 

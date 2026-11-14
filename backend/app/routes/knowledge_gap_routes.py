@@ -4,11 +4,24 @@ from sqlalchemy import desc
 from app.database import get_db
 from app.auth import get_current_user
 from app.models import User, Evaluation, Topic
+from app.services.knowledge_gap_engine import analyze_user_knowledge
 import json
 
 router = APIRouter()
 
-@router.get("/")
+@router.get("/knowledge-gaps")
+def get_user_knowledge_gaps(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Returns all detected knowledge gaps for the authenticated user, sorted by severity.
+    """
+    gaps = analyze_user_knowledge(db, current_user.id)
+    return {"gaps": gaps}
+
+@router.get("/dashboard/knowledge-gap")
+@router.get("/dashboard/knowledge-gap/")
 def get_weakest_topic_knowledge_gap(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)

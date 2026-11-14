@@ -9,9 +9,11 @@ from app.auth import get_current_user
 from app.rate_limiter import rate_limit_authenticated
 from app.models import User, Interview, InterviewQuestion, InterviewAnswer, Resume
 from app.services.resume_parser import ResumeParser
+from app.services.resume_intelligence_service import ResumeIntelligenceService
 from app.services.activity_service import ActivityService
 from app.services.adaptive_interview_service import AdaptiveInterviewService
 from app.services.communication_coach_service import CommunicationCoachService
+from app.core.logging_config import logger
 
 router = APIRouter(prefix="/interview")
 
@@ -56,6 +58,7 @@ async def upload_resume(file: UploadFile = File(...), db: Session = Depends(get_
     clean_name = "".join(c for c in raw_filename if c.isalnum() or c in "._-")
     temp_path = os.path.abspath(os.path.join(upload_dir, f"user_{current_user.id}_{uuid.uuid4().hex}_{clean_name}"))
 
+    file_persisted = False
     try:
         with open(temp_path, "wb") as f:
             f.write(content)
@@ -63,23 +66,53 @@ async def upload_resume(file: UploadFile = File(...), db: Session = Depends(get_
         parsed_data = await ResumeParser.parse_resume(temp_path)
         if not parsed_data:
             raise HTTPException(status_code=400, detail="Failed to parse resume.")
-            
-        resume = Resume(
-            user_id=current_user.id,
-            file_path=temp_path,
-            parsed_skills=json.dumps(parsed_data.get("skills", [])),
-            parsed_projects=json.dumps(parsed_data.get("projects", [])),
-            parsed_experience=json.dumps(parsed_data.get("experience", []))
-        )
-        db.add(resume)
-        db.commit()
-        db.refresh(resume)
+
+        # Deactivate older resumes and insert new active Resume record atomically
+        try:
+            db.query(Resume).filter(Resume.user_id == current_user.id).update({"is_active": False})
+            resume = Resume(
+                user_id=current_user.id,
+                file_name=raw_filename,
+                file_type=ext,
+                file_path=temp_path,
+                is_active=True,
+                parsed_skills=json.dumps(parsed_data.get("skills", [])),
+                parsed_projects=json.dumps(parsed_data.get("projects", [])),
+                parsed_experience=json.dumps(parsed_data.get("experience", [])),
+                parsed_education=json.dumps(parsed_data.get("education", [])),
+                parsed_certifications=json.dumps(parsed_data.get("certifications", [])),
+                analysis_summary_json=json.dumps(parsed_data)
+            )
+            db.add(resume)
+            db.commit()
+            file_persisted = True
+            db.refresh(resume)
+        except Exception as db_err:
+            db.rollback()
+            logger.error(f"Failed to persist legacy resume record: {db_err}")
+            raise HTTPException(status_code=500, detail="Database persistence failed")
+
+        # Generate personalized questions for consistent intelligence integration
+        try:
+            await ResumeIntelligenceService.generate_personalized_questions(
+                db=db,
+                user_id=current_user.id,
+                resume_id=resume.id
+            )
+        except Exception as q_err:
+            logger.warning(f"Error generating personalized questions in legacy route: {q_err}")
         
         return {"message": "Resume uploaded successfully.", "resume_id": resume.id, "parsed_data": parsed_data}
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail="Unable to process uploaded resume file.")
+    finally:
+        if not file_persisted and os.path.exists(temp_path):
+            try:
+                os.unlink(temp_path)
+            except Exception as cleanup_err:
+                logger.warning(f"Failed to cleanup unpersisted interview resume upload {temp_path}: {cleanup_err}")
 
 @router.post("/start")
 async def start_interview(

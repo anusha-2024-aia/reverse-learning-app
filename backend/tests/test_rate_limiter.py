@@ -194,5 +194,136 @@ class TestRateLimiter(unittest.TestCase):
 
         self.assertTrue(hit_429, "Resume interview answer endpoint should be rate-limited after 5 requests.")
 
+    # -----------------------------------------------------------------
+    # Bounded Rate Limiter & LRU Tests (Deterministic Time Mocking)
+    # -----------------------------------------------------------------
+
+    def test_invalid_max_keys_rejected(self):
+        """Verify invalid max_keys values raise ValueError."""
+        for invalid_val in [0, -1, -50, "100", None, 3.14, True, False]:
+            with self.subTest(invalid_val=invalid_val):
+                with self.assertRaises(ValueError):
+                    InMemoryRateLimiter(max_keys=invalid_val)
+
+    @patch("time.time")
+    def test_capacity_never_exceeds_max_keys(self, mock_time):
+        """Verify dictionary never exceeds the configured max_keys capacity."""
+        mock_time.return_value = 1000.0
+        max_capacity = 5
+        limiter = InMemoryRateLimiter(requests_per_window=10, window_seconds=60, max_keys=max_capacity)
+
+        for i in range(25):
+            limiter.is_rate_limited(f"client_ip_{i}")
+            self.assertLessEqual(len(limiter.requests), max_capacity)
+
+        self.assertEqual(len(limiter.requests), max_capacity)
+
+    @patch("time.time")
+    def test_least_recently_used_key_is_evicted(self, mock_time):
+        """Verify the least recently used key is evicted when max_keys is reached."""
+        mock_time.return_value = 1000.0
+        limiter = InMemoryRateLimiter(requests_per_window=5, window_seconds=60, max_keys=3)
+
+        limiter.is_rate_limited("key_a")
+        limiter.is_rate_limited("key_b")
+        limiter.is_rate_limited("key_c")
+        self.assertEqual(list(limiter.requests.keys()), ["key_a", "key_b", "key_c"])
+
+        # Inserting key_d should evict key_a (oldest in LRU order)
+        limiter.is_rate_limited("key_d")
+        self.assertEqual(list(limiter.requests.keys()), ["key_b", "key_c", "key_d"])
+        self.assertNotIn("key_a", limiter.requests)
+
+    @patch("time.time")
+    def test_accessing_key_updates_lru_position(self, mock_time):
+        """Verify accessing an existing key updates its LRU position so it is not evicted next."""
+        mock_time.return_value = 1000.0
+        limiter = InMemoryRateLimiter(requests_per_window=5, window_seconds=60, max_keys=3)
+
+        limiter.is_rate_limited("key_a")
+        limiter.is_rate_limited("key_b")
+        limiter.is_rate_limited("key_c")
+        self.assertEqual(list(limiter.requests.keys()), ["key_a", "key_b", "key_c"])
+
+        # Access key_a again: should move key_a to the end (MRU)
+        limiter.is_rate_limited("key_a")
+        self.assertEqual(list(limiter.requests.keys()), ["key_b", "key_c", "key_a"])
+
+        # Now inserting key_d should evict key_b (new LRU), keeping key_a
+        limiter.is_rate_limited("key_d")
+        self.assertEqual(list(limiter.requests.keys()), ["key_c", "key_a", "key_d"])
+        self.assertIn("key_a", limiter.requests)
+        self.assertNotIn("key_b", limiter.requests)
+
+    @patch("time.time")
+    def test_expired_timestamps_removed_when_key_accessed_again(self, mock_time):
+        """Verify expired timestamps are pruned when the same key makes a new request."""
+        mock_time.return_value = 1000.0
+        limiter = InMemoryRateLimiter(requests_per_window=3, window_seconds=60, max_keys=10)
+
+        limiter.is_rate_limited("client_x")
+        mock_time.return_value = 1020.0
+        limiter.is_rate_limited("client_x")
+        self.assertEqual(limiter.requests["client_x"], [1000.0, 1020.0])
+
+        # Advance time to t=1070.0 (cutoff is 1070 - 60 = 1010.0)
+        # Timestamp 1000.0 is expired (< 1010.0), 1020.0 is still valid (> 1010.0)
+        mock_time.return_value = 1070.0
+        is_limited, _, remaining = limiter.is_rate_limited("client_x")
+        self.assertFalse(is_limited)
+        self.assertEqual(limiter.requests["client_x"], [1020.0, 1070.0])
+        self.assertEqual(remaining, 1)
+
+    @patch("time.time")
+    def test_empty_entries_not_retained(self, mock_time):
+        """Verify empty timestamp lists are never retained in the requests dictionary."""
+        mock_time.return_value = 1000.0
+        limiter = InMemoryRateLimiter(requests_per_window=2, window_seconds=30, max_keys=10)
+
+        limiter.is_rate_limited("client_y")
+        self.assertIn("client_y", limiter.requests)
+        for val in limiter.requests.values():
+            self.assertGreater(len(val), 0)
+
+        # Advance time far beyond window (t=1100.0, cutoff = 1070.0)
+        mock_time.return_value = 1100.0
+        limiter.is_rate_limited("client_y")
+        self.assertEqual(limiter.requests["client_y"], [1100.0])
+        for val in limiter.requests.values():
+            self.assertGreater(len(val), 0)
+
+    @patch("time.time")
+    def test_sliding_window_limits_and_retry_after(self, mock_time):
+        """Verify exact sliding-window quota and Retry-After calculation."""
+        mock_time.return_value = 1000.0
+        limiter = InMemoryRateLimiter(requests_per_window=2, window_seconds=40, max_keys=10)
+
+        # Request 1: allowed, 1 remaining
+        limited, retry, rem = limiter.is_rate_limited("key_z")
+        self.assertFalse(limited)
+        self.assertEqual(rem, 1)
+        self.assertEqual(retry, 0)
+
+        # Request 2 (t=1010): allowed, 0 remaining
+        mock_time.return_value = 1010.0
+        limited, retry, rem = limiter.is_rate_limited("key_z")
+        self.assertFalse(limited)
+        self.assertEqual(rem, 0)
+        self.assertEqual(retry, 0)
+
+        # Request 3 (t=1025): rate limited! Oldest=1000.0, window=40, expires=1040.0.
+        # Retry-After = 1040 - 1025 = 15 seconds
+        mock_time.return_value = 1025.0
+        limited, retry, rem = limiter.is_rate_limited("key_z")
+        self.assertTrue(limited)
+        self.assertEqual(retry, 15)
+        self.assertEqual(rem, 0)
+
+        # Request 4 (t=1041): oldest 1000.0 expired (cutoff=1001.0). Allowed!
+        mock_time.return_value = 1041.0
+        limited, retry, rem = limiter.is_rate_limited("key_z")
+        self.assertFalse(limited)
+        self.assertEqual(rem, 0)
+
 if __name__ == "__main__":
     unittest.main()

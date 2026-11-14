@@ -6,7 +6,11 @@ from app.core.logging_config import logger
 
 def calculate_technical_mastery(db: Session, user_id: int):
     # Avg of evaluation AI scores and interview technical scores
-    eval_avg = db.query(func.avg(Evaluation.ai_score)).filter(Evaluation.user_id == user_id, Evaluation.ai_score != None).scalar() or 0
+    eval_avg = db.query(func.avg(Evaluation.ai_score)).filter(
+        Evaluation.user_id == user_id,
+        Evaluation.ai_score != None,
+        Evaluation.genuine_predicate()
+    ).scalar() or 0
     int_avg = db.query(func.avg(Interview.technical_score)).filter(Interview.user_id == user_id, Interview.technical_score != None).scalar() or 0
     
     if eval_avg > 0 and int_avg > 0:
@@ -16,7 +20,11 @@ def calculate_technical_mastery(db: Session, user_id: int):
     return round(int_avg)
 
 def calculate_communication_score(db: Session, user_id: int):
-    eval_avg = db.query(func.avg(Evaluation.communication_score)).filter(Evaluation.user_id == user_id, Evaluation.communication_score != None).scalar() or 0
+    eval_avg = db.query(func.avg(Evaluation.communication_score)).filter(
+        Evaluation.user_id == user_id,
+        Evaluation.communication_score != None,
+        Evaluation.genuine_predicate()
+    ).scalar() or 0
     int_avg = db.query(func.avg(Interview.communication_score)).filter(Interview.user_id == user_id, Interview.communication_score != None).scalar() or 0
     
     if eval_avg > 0 and int_avg > 0:
@@ -42,7 +50,10 @@ def get_recent_activity(db: Session, user_id: int, limit: int = 5):
         Evaluation.ai_score.label('score'),
         Topic.name.label('title'),
         literal('evaluation').label('type')
-    ).join(Topic, Topic.id == Evaluation.topic_id).filter(Evaluation.user_id == user_id).order_by(desc(Evaluation.created_at)).limit(limit).all()
+    ).join(Topic, Topic.id == Evaluation.topic_id).filter(
+        Evaluation.user_id == user_id,
+        Evaluation.genuine_predicate()
+    ).order_by(desc(Evaluation.created_at)).limit(limit).all()
     
     ints = db.query(
         Interview.id,

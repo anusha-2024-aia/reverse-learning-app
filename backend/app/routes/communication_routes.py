@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.auth import get_current_user
 from app.rate_limiter import rate_limit_authenticated
-from app.models import User, CommunicationAnalysis
+from app.models import User, CommunicationAnalysis, Interview, InterviewAnswer, InterviewQuestion
 from app.services.communication_coach_service import CommunicationCoachService
 
 router = APIRouter(prefix="/communication")
@@ -29,6 +29,28 @@ async def analyze_communication(
     """ Analyzes voice transcript communication metrics and stores results. """
     if not payload.transcript or not payload.transcript.strip():
         raise HTTPException(status_code=400, detail="Transcript is required for communication analysis.")
+
+    # Ownership and foreign key validation
+    if payload.interview_id is not None:
+        interview = db.query(Interview).filter(Interview.id == payload.interview_id).first()
+        if not interview:
+            raise HTTPException(status_code=404, detail="Interview session not found.")
+        if interview.user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Access denied: Interview does not belong to the current user.")
+
+        if payload.answer_id is not None:
+            answer = db.query(InterviewAnswer).filter(InterviewAnswer.id == payload.answer_id).first()
+            if not answer:
+                raise HTTPException(status_code=404, detail="Interview answer not found.")
+
+            question = db.query(InterviewQuestion).filter(
+                InterviewQuestion.id == answer.question_id,
+                InterviewQuestion.interview_id == payload.interview_id
+            ).first()
+            if not question:
+                raise HTTPException(status_code=404, detail="Interview answer not found for the referenced interview.")
+    elif payload.answer_id is not None:
+        raise HTTPException(status_code=400, detail="interview_id is required when answer_id is provided.")
 
     record = await CommunicationCoachService.process_and_save_communication_analysis(
         db=db,

@@ -27,26 +27,35 @@ class AdaptiveEngine:
         
         mastery.attempts += 1
         
-        # Consider score >= 7 as success
-        if evaluation_score >= 7:
+        # Normalize score safely within 0-100 range
+        normalized_score = max(0.0, min(100.0, float(evaluation_score)))
+
+        # Consider score >= 70 as success
+        if normalized_score >= 70.0:
             mastery.successful_attempts += 1
         else:
             mastery.failed_attempts += 1
             
         mastery.last_review = datetime.now(timezone.utc)
         
-        # Simple mastery calculation: weighted moving average or success rate
-        # Let's use an exponential moving average for mastery score
+        # Exponential moving average for mastery score on 0-100 scale
         alpha = 0.3
-        normalized_score = evaluation_score * 10 # 0-100 scale
         
         if mastery.attempts == 1:
             mastery.mastery_score = normalized_score
         else:
-            mastery.mastery_score = (alpha * normalized_score) + ((1 - alpha) * mastery.mastery_score)
+            previous_mastery = max(0.0, min(100.0, float(mastery.mastery_score)))
+            mastery.mastery_score = (alpha * normalized_score) + ((1.0 - alpha) * previous_mastery)
+
+        # Ensure newly calculated mastery remains strictly within 0-100
+        mastery.mastery_score = max(0.0, min(100.0, float(mastery.mastery_score)))
             
-        # Update Spaced Repetition next_review date
-        mastery.next_review = SpacedRepetition.calculate_next_review(mastery.mastery_score, mastery.attempts, evaluation_score)
+        # Update Spaced Repetition next_review date with 0-100 scale values
+        mastery.next_review = SpacedRepetition.calculate_next_review(
+            mastery.mastery_score,
+            mastery.attempts,
+            int(round(normalized_score))
+        )
             
         db.commit()
         db.refresh(mastery)

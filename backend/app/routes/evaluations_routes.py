@@ -1,4 +1,5 @@
 import json
+import math
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -20,14 +21,43 @@ router = APIRouter()
 eval_rate_limit = rate_limit_authenticated(default_limit=5, window_seconds=60, env_var_name="AI_EVALUATION_RATE_LIMIT")
 
 
-def extract_score(dim_dict):
+def extract_score(dim_dict) -> int:
+    """
+    Extracts and validates a dimension score from AI evaluation output.
+    Returns an integer clamped to [0, 100].
+    Safely handles dicts, integers, floats, numeric strings, nulls, booleans, and malformed inputs.
+    Returns 0 as conservative fallback on invalid or unparseable input.
+    """
+    raw_val = None
     if isinstance(dim_dict, dict):
-        val = dim_dict.get("score", 0)
-    elif isinstance(dim_dict, (int, float)):
-        val = dim_dict
-    else:
-        val = 0
-    return max(0, min(100, int(val)))
+        raw_val = dim_dict.get("score")
+    elif not isinstance(dim_dict, bool):
+        raw_val = dim_dict
+
+    # Reject booleans explicitly (bool is a subclass of int in Python)
+    if isinstance(raw_val, bool) or raw_val is None:
+        return 0
+
+    try:
+        if isinstance(raw_val, int):
+            return max(0, min(100, raw_val))
+        elif isinstance(raw_val, float):
+            num = raw_val
+        elif isinstance(raw_val, str):
+            clean = raw_val.strip()
+            if not clean:
+                return 0
+            num = float(clean)
+        else:
+            return 0
+
+        if math.isnan(num) or math.isinf(num):
+            return 0
+
+        int_val = int(round(num))
+        return max(0, min(100, int_val))
+    except (ValueError, TypeError, OverflowError):
+        return 0
 
 def extract_feedback(dim_dict):
     if isinstance(dim_dict, dict):
@@ -44,7 +74,8 @@ async def evaluate_user_explanation(evaluation: schemas.EvaluationCreate, db: Se
     # Get previous attempts for attempt number & comparison
     previous_evals = db.query(models.Evaluation).filter(
         models.Evaluation.user_id == current_user.id,
-        models.Evaluation.topic_id == evaluation.topic_id
+        models.Evaluation.topic_id == evaluation.topic_id,
+        models.Evaluation.genuine_predicate()
     ).order_by(models.Evaluation.created_at.asc()).all()
     
     attempt_number = len(previous_evals) + 1
@@ -221,7 +252,10 @@ def get_my_evaluations(db: Session = Depends(get_db), current_user: models.User 
         models.Topic, models.Evaluation.topic_id == models.Topic.id
     ).join(
         models.Curriculum, models.Topic.curriculum_id == models.Curriculum.id
-    ).filter(models.Evaluation.user_id == current_user.id).order_by(models.Evaluation.created_at.desc()).all()
+    ).filter(
+        models.Evaluation.user_id == current_user.id,
+        models.Evaluation.genuine_predicate()
+    ).order_by(models.Evaluation.created_at.desc()).all()
     
     result = []
     for e, t, c in evals:
@@ -245,7 +279,8 @@ def get_topic_evaluation_history(topic_id: int, db: Session = Depends(get_db), c
         
     evals = db.query(models.Evaluation).filter(
         models.Evaluation.user_id == current_user.id,
-        models.Evaluation.topic_id == topic_id
+        models.Evaluation.topic_id == topic_id,
+        models.Evaluation.genuine_predicate()
     ).order_by(models.Evaluation.created_at.asc()).all()
     
     history = []

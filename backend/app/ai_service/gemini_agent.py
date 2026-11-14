@@ -1,5 +1,6 @@
 import os
 import json
+import re
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
 
@@ -21,6 +22,20 @@ else:
 
 model_name = "gemini-2.5-flash"
 
+def _sanitize_for_log(message: str) -> str:
+    """
+    Sanitizes log messages by removing sensitive API keys or Authorization header patterns.
+    """
+    if not message:
+        return ""
+    sanitized = str(message)
+    if api_key and len(api_key.strip()) > 5:
+        sanitized = sanitized.replace(api_key.strip(), "[REDACTED_API_KEY]")
+    # Redact common authorization header/query patterns
+    sanitized = re.sub(r'(bearer\s+)[a-zA-Z0-9_\-\.]{8,}', r'\1[REDACTED]', sanitized, flags=re.IGNORECASE)
+    sanitized = re.sub(r'((?:api[_-]?key|key)=)[a-zA-Z0-9_\-\.]{8,}', r'\1[REDACTED]', sanitized, flags=re.IGNORECASE)
+    return sanitized
+
 async def stream_evaluate_explanation(topic: str, user_explanation: str, learning_mode: str = "general"):
     """
     Evaluates the user's explanation using Gemini in a streaming fashion.
@@ -35,13 +50,19 @@ async def stream_evaluate_explanation(topic: str, user_explanation: str, learnin
     mode_instructions = {
         "technical": "Focus heavily on algorithmic logic, data structures, and Time/Space complexity analysis.",
         "fluency": "Focus on grammatical precision, advanced vocabulary usage, professional tone, and pronunciation nuances.",
-        "general": "Focus on high-level conceptual clarity, effective analogies, and overall intuition."
+        "general": "Focus on high-level conceptual clarity, effective analogies, and overall intuition.",
+        "explain": "Focus on high-level conceptual clarity, effective analogies, and overall intuition."
     }
-    
-    focus = mode_instructions.get(learning_mode, mode_instructions["general"])
+
+    # Defensive validation: ensure learning_mode is strictly one of the supported modes
+    clean_mode = str(learning_mode).lower().strip() if learning_mode else "general"
+    if clean_mode not in mode_instructions:
+        clean_mode = "general"
+
+    focus = mode_instructions[clean_mode]
 
     system_prompt = f"""
-    You are an expert educational assessment system specializing in '{learning_mode.upper()}'.
+    You are an expert educational assessment system specializing in '{clean_mode.upper()}'.
     Your goal is to evaluate a student's explanation of a given concept across 8 key dimensions.
 
     CONTEXTUAL FOCUS: {focus}
@@ -90,18 +111,39 @@ async def stream_evaluate_explanation(topic: str, user_explanation: str, learnin
                 yield chunk.choices[0].delta.content
                 
     except Exception as e:
-        logger.error(f"Error in stream_evaluate_explanation: {e}")
+        sanitized_log = _sanitize_for_log(str(e))
+        logger.error(f"Error in stream_evaluate_explanation ({type(e).__name__}): {sanitized_log}")
         err_str = str(e)
-        if "permission-denied" in err_str or "403" in err_str or "credits" in err_str.lower():
-            user_msg = "Your Google account has an issue with credits or permissions. Please check Google AI Studio."
-        elif "Model not found" in err_str or "400" in err_str:
+        err_lower = err_str.lower()
+        if "permission-denied" in err_lower or "403" in err_str or "credits" in err_lower:
+            user_msg = "Your AI account has an issue with credits or permissions. Please check Google AI Studio."
+        elif "model not found" in err_lower or "400" in err_str:
             user_msg = "The AI model was not found. Please check the model name in the backend configuration."
-        elif "401" in err_str or "Unauthorized" in err_str:
+        elif "401" in err_str or "unauthorized" in err_lower:
             user_msg = "Invalid GEMINI_API_KEY. Please check your .env file."
+        elif "rate limit" in err_lower or "429" in err_str:
+            user_msg = "AI evaluation rate limit exceeded. Please wait a moment and try again."
         else:
-            user_msg = f"AI evaluation error: {err_str}"
-        yield f"<thinking>Error occurred: {err_str}</thinking>"
-        yield f'<json>{{"score": 0, "summary": "{user_msg}", "strengths": [], "weaknesses": ["System Error"], "correct_version": "N/A", "follow_up_question": "N/A", "learning_suggestions": [], "communication_score": 0, "speaking_pace_score": 0, "clarity_score": 0, "grammar_score": 0, "vocabulary_score": 0, "filler_words": 0, "feedback_sections": []}}</json>'
+            user_msg = "AI evaluation encountered a temporary processing error. Please try again."
+
+        yield f"<thinking>Error occurred: {user_msg}</thinking>"
+        payload = {
+            "score": 0,
+            "summary": user_msg,
+            "strengths": [],
+            "weaknesses": ["System Error"],
+            "correct_version": "N/A",
+            "follow_up_question": "N/A",
+            "learning_suggestions": [],
+            "communication_score": 0,
+            "speaking_pace_score": 0,
+            "clarity_score": 0,
+            "grammar_score": 0,
+            "vocabulary_score": 0,
+            "filler_words": 0,
+            "feedback_sections": []
+        }
+        yield f"<json>{json.dumps(payload)}</json>"
 
 async def evaluate_explanation(topic: str, user_explanation: str, learning_mode: str = "general"):
     """
@@ -129,11 +171,12 @@ async def evaluate_explanation(topic: str, user_explanation: str, learning_mode:
             
         return json.loads(full_text, strict=False)
     except Exception as e:
-        logger.error(f"Parsing error: {e}")
+        sanitized_log = _sanitize_for_log(str(e))
+        logger.error(f"Parsing error: {sanitized_log}")
         return {
             "score": 0,
             "missing_concepts": ["Parsing Error"],
-            "feedback": f"Failed to parse AI response. Error: {str(e)}"
+            "feedback": "Failed to parse AI response. Please try again."
         }
 
 async def generate_interview_question(notes: str, previous_qa: list) -> str:
@@ -169,7 +212,8 @@ async def generate_interview_question(notes: str, previous_qa: list) -> str:
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
-        logger.error(f"Error in generate_interview_question: {e}")
+        sanitized_log = _sanitize_for_log(str(e))
+        logger.error(f"Error in generate_interview_question ({type(e).__name__}): {sanitized_log}")
         return "I encountered an error generating the next question. Please tell me more about your notes."
 
 async def evaluate_interview_performance(notes: str, interview_transcript: list) -> dict:
@@ -247,7 +291,8 @@ async def evaluate_interview_performance(notes: str, interview_transcript: list)
             
         return json.loads(text, strict=False)
     except Exception as e:
-        logger.error(f"Error in evaluate_interview_performance: {e}")
+        sanitized_log = _sanitize_for_log(str(e))
+        logger.error(f"Error in evaluate_interview_performance ({type(e).__name__}): {sanitized_log}")
         return {
             "overall_score": 0,
             "confidence_score": 0,
@@ -294,7 +339,8 @@ async def generate_improvement_insight(attempt_history: list) -> str:
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
-        logger.error(f"Error in generate_improvement_insight: {e}")
+        sanitized_log = _sanitize_for_log(str(e))
+        logger.error(f"Error in generate_improvement_insight ({type(e).__name__}): {sanitized_log}")
         return "Your explanation shows clear progress across your recent attempts. Focus on edge cases and completeness."
 
 async def generate_ai_roadmap(
@@ -384,7 +430,8 @@ async def generate_ai_roadmap(
         return {"status": "success", "topics": validated_topics}
 
     except Exception as e:
-        logger.error(f"Error in generate_ai_roadmap: {e}")
+        sanitized_log = _sanitize_for_log(str(e))
+        logger.error(f"Error in generate_ai_roadmap ({type(e).__name__}): {sanitized_log}")
         return get_fallback_roadmap(target_role, experience_level)
 
 def validate_and_sanitize_roadmap_topics(topics: list, target_role: str) -> list:

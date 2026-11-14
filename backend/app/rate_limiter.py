@@ -1,7 +1,7 @@
 import os
 import sys
 import time
-from collections import defaultdict
+from collections import OrderedDict
 from threading import Lock
 from typing import Optional, Tuple
 from fastapi import Request, HTTPException, status, Depends
@@ -21,13 +21,21 @@ _LIMITERS = []
 
 class InMemoryRateLimiter:
     """
-    Thread-safe in-memory sliding window rate limiter.
-    Tracks timestamp lists per client/user key.
+    Thread-safe in-memory sliding window rate limiter with bounded LRU key storage.
+    Tracks timestamp lists per client/user key up to max_keys capacity.
     """
-    def __init__(self, requests_per_window: int = 5, window_seconds: int = 60):
+    def __init__(
+        self,
+        requests_per_window: int = 5,
+        window_seconds: int = 60,
+        max_keys: int = 10000
+    ):
+        if not isinstance(max_keys, int) or isinstance(max_keys, bool) or max_keys <= 0:
+            raise ValueError("max_keys must be a positive integer")
         self.requests_per_window = requests_per_window
         self.window_seconds = window_seconds
-        self.requests = defaultdict(list)
+        self.max_keys = max_keys
+        self.requests = OrderedDict()
         self.lock = Lock()
         _LIMITERS.append(self)
 
@@ -45,18 +53,33 @@ class InMemoryRateLimiter:
         now = time.time()
         cutoff = now - self.window_seconds
         with self.lock:
-            # Filter timestamps within current window
-            timestamps = [t for t in self.requests[key] if t > cutoff]
-            self.requests[key] = timestamps
-            
+            if key in self.requests:
+                # Filter timestamps within current window
+                timestamps = [t for t in self.requests[key] if t > cutoff]
+                if not timestamps:
+                    del self.requests[key]
+                else:
+                    self.requests.move_to_end(key)
+            else:
+                timestamps = []
+
             if len(timestamps) >= self.requests_per_window:
                 oldest = timestamps[0]
                 retry_after = int(max(1, oldest + self.window_seconds - now))
+                self.requests[key] = timestamps
+                self.requests.move_to_end(key)
                 return True, retry_after, 0
-            else:
-                self.requests[key].append(now)
-                remaining = self.requests_per_window - len(self.requests[key])
-                return False, 0, remaining
+
+            # If inserting a new key, evict least recently used key if at capacity
+            if key not in self.requests:
+                if len(self.requests) >= self.max_keys:
+                    self.requests.popitem(last=False)
+
+            timestamps.append(now)
+            self.requests[key] = timestamps
+            self.requests.move_to_end(key)
+            remaining = self.requests_per_window - len(timestamps)
+            return False, 0, remaining
 
 def reset_all_limiters():
     for limiter in _LIMITERS:
@@ -79,14 +102,19 @@ def parse_env_limit(env_var_name: Optional[str], default_limit: int) -> int:
 def rate_limit_authenticated(
     default_limit: int = 5,
     window_seconds: int = 60,
-    env_var_name: Optional[str] = None
+    env_var_name: Optional[str] = None,
+    max_keys: int = 10000
 ):
     """
     Dependency factory for authenticated endpoints. Limits per user.id.
     Executes rate check AFTER get_current_user authentication and BEFORE route logic.
     """
     effective_limit = parse_env_limit(env_var_name, default_limit)
-    limiter = InMemoryRateLimiter(requests_per_window=effective_limit, window_seconds=window_seconds)
+    limiter = InMemoryRateLimiter(
+        requests_per_window=effective_limit,
+        window_seconds=window_seconds,
+        max_keys=max_keys
+    )
 
     async def dependency(request: Request, current_user: User = Depends(get_current_user)):
         key = f"user:{current_user.id}"
@@ -108,13 +136,18 @@ def rate_limit_authenticated(
 def rate_limit_ip(
     default_limit: int = 10,
     window_seconds: int = 60,
-    env_var_name: Optional[str] = None
+    env_var_name: Optional[str] = None,
+    max_keys: int = 10000
 ):
     """
     Dependency factory for unauthenticated endpoints. Limits per client IP address.
     """
     effective_limit = parse_env_limit(env_var_name, default_limit)
-    limiter = InMemoryRateLimiter(requests_per_window=effective_limit, window_seconds=window_seconds)
+    limiter = InMemoryRateLimiter(
+        requests_per_window=effective_limit,
+        window_seconds=window_seconds,
+        max_keys=max_keys
+    )
 
     async def dependency(request: Request):
         client_ip = request.client.host if request.client else "127.0.0.1"

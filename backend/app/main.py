@@ -5,9 +5,11 @@ from app.routes import study_routes, curriculum_routes, topics_routes, insights_
 from contextlib import asynccontextmanager
 from app.database import engine, get_db, SessionLocal
 from app import models
+from app.core.logging_config import logger
 
-def seed_topics():
-    db = SessionLocal()
+def seed_topics(db_session: Session = None):
+    db = db_session if db_session is not None else SessionLocal()
+    close_db = db_session is None
     try:
         curriculums_data = [
             # Programming & CS
@@ -82,27 +84,42 @@ def seed_topics():
             if not cur:
                 cur = models.Curriculum(name=cur_data["name"], description=cur_data["desc"], difficulty=cur_data["diff"])
                 db.add(cur)
-                db.commit()
-                db.refresh(cur)
+                db.flush()
                 
-            existing_topics_count = db.query(models.Topic).filter(models.Topic.curriculum_id == cur.id).count()
-            if existing_topics_count != len(cur_data["topics"]):
-                db.query(models.Topic).filter(models.Topic.curriculum_id == cur.id).delete()
-                topics_to_add = []
-                for idx, topic_name in enumerate(cur_data["topics"]):
+            existing_topics = db.query(models.Topic).filter(models.Topic.curriculum_id == cur.id).all()
+            existing_topic_names = {t.name.strip().casefold() for t in existing_topics if t.name}
+
+            topics_to_add = []
+            for idx, topic_name in enumerate(cur_data["topics"]):
+                clean_name = topic_name.strip()
+                if clean_name.casefold() not in existing_topic_names:
                     topics_to_add.append(
-                        models.Topic(name=topic_name, category="Engineering", curriculum_id=cur.id, order_in_curriculum=idx+1)
+                        models.Topic(
+                            name=clean_name,
+                            category="Engineering",
+                            curriculum_id=cur.id,
+                            order_in_curriculum=idx + 1
+                        )
                     )
+                    existing_topic_names.add(clean_name.casefold())
+
+            if topics_to_add:
                 db.add_all(topics_to_add)
-                db.commit()
+                db.flush()
+
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error in seed_topics: {e}")
+        raise
     finally:
-        db.close()
+        if close_db:
+            db.close()
 
 import time
 import uuid
 import os
 from fastapi import Request, Response
-from app.core.logging_config import logger
 from app.core.error_handlers import register_exception_handlers
 
 @asynccontextmanager
@@ -182,7 +199,7 @@ app.include_router(interview_routes.router, prefix="/api", tags=["Interviews"])
 app.include_router(adaptive_routes.router, prefix="/api", tags=["Adaptive Engine"])
 app.include_router(roadmap_routes.router, prefix="/api", tags=["Roadmap"])
 app.include_router(analytics_routes.router, prefix="/api", tags=["Analytics"])
-app.include_router(knowledge_gap_routes.router, prefix="/api/dashboard/knowledge-gap", tags=["knowledge-gaps"])
+app.include_router(knowledge_gap_routes.router, prefix="/api", tags=["knowledge-gaps"])
 app.include_router(dashboard_routes.router, prefix="/api/dashboard-data", tags=["Dashboard"])
 app.include_router(revision_routes.router, prefix="/api", tags=["Smart Revision"])
 app.include_router(resume_routes.router, prefix="/api", tags=["Resume Intelligence"])

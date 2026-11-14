@@ -1,8 +1,10 @@
 import os
 import json
+import math
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
-from app.models import Resume, ResumeQuestion, ResumeInterview, Evaluation, Topic, UserMastery
+from app.models import Resume, ResumeQuestion, ResumeInterview, Evaluation, Topic, UserMastery, RESUME_WEAKNESS_PREFIX
 from app.ai_service.gemini_agent import client, model_name
 from app.services.activity_service import ActivityService
 from app.core.logging_config import logger
@@ -10,9 +12,35 @@ from app.core.logging_config import logger
 class ResumeIntelligenceService:
 
     @staticmethod
+    def bound_score(val, default: int = 75) -> int:
+        """
+        Safely clamps score values to [0, 100].
+        Rejects boolean score values, NaN, positive/negative infinity, and handles OverflowError.
+        """
+        if val is None or isinstance(val, bool):
+            return default
+        if isinstance(val, float) and (math.isnan(val) or math.isinf(val)):
+            return default
+        try:
+            if isinstance(val, str):
+                s = val.strip().lower()
+                if s in ("nan", "inf", "-inf", "+inf", "infinity", "-infinity", "+infinity"):
+                    return default
+                parsed = float(s)
+                if math.isnan(parsed) or math.isinf(parsed):
+                    return default
+                int_val = int(parsed)
+            else:
+                int_val = int(val)
+            return min(100, max(0, int_val))
+        except (ValueError, TypeError, OverflowError):
+            return default
+
+    @staticmethod
     def extract_text(file_path: str, file_type: str = None) -> str:
         """
-        Extracts clean text from PDF or DOCX file.
+        Extracts clean text from PDF or DOCX file using safe context management.
+        Extracts both body paragraphs and tables for DOCX files.
         """
         if not os.path.exists(file_path):
             raise Exception("Resume file not found")
@@ -22,15 +50,32 @@ class ResumeIntelligenceService:
 
         try:
             if ext == 'pdf':
-                import fitz # PyMuPDF
-                doc = fitz.open(file_path)
-                for page in doc:
-                    text += page.get_text() + "\n"
+                import fitz  # PyMuPDF
+                with open(file_path, "rb") as f:
+                    pdf_bytes = f.read()
+                with fitz.open(stream=pdf_bytes, filetype="pdf") as doc:
+                    for page in doc:
+                        text += page.get_text() + "\n"
             elif ext == 'docx':
                 import docx
-                doc = docx.Document(file_path)
+                import io
+                with open(file_path, "rb") as f:
+                    docx_bytes = f.read()
+                doc = docx.Document(io.BytesIO(docx_bytes))
                 for para in doc.paragraphs:
-                    text += para.text + "\n"
+                    if para.text.strip():
+                        text += para.text + "\n"
+                for table in doc.tables:
+                    for row in table.rows:
+                        row_items = []
+                        seen_cells = set()
+                        for cell in row.cells:
+                            ctext = cell.text.strip()
+                            if ctext and ctext not in seen_cells:
+                                seen_cells.add(ctext)
+                                row_items.append(ctext)
+                        if row_items:
+                            text += " | ".join(row_items) + "\n"
             else:
                 raise Exception(f"Unsupported file extension: .{ext}. Please upload a PDF or DOCX file.")
         except Exception as e:
@@ -46,8 +91,8 @@ class ResumeIntelligenceService:
     @staticmethod
     def fallback_rule_based_parse(text: str) -> dict:
         """
-        Robust regex & keyword rule-based resume parser used as a fallback or enhancement.
-        Extracts skills, projects, experience, and education directly from resume text.
+        Rule-based resume parser used as an honest fallback when AI service is unavailable.
+        Extracts skills present in actual resume text without fabricating companies, education, or projects.
         """
         import re
 
@@ -59,7 +104,8 @@ class ResumeIntelligenceService:
             "Vercel", "Render", "VS Code", "Object-Oriented Programming", "OOP",
             "Data Structures", "Algorithms", "Problem Solving", "Complexity Analysis",
             "REST APIs", "Regression Models", "Tree Models", "OCR", "AI Job-Matching Algorithms",
-            "Responsive UI", "API Testing"
+            "Responsive UI", "API Testing", "Docker", "Kubernetes", "AWS", "Azure", "GCP",
+            "Linux", "Redis", "Kafka", "GraphQL", "Django", "Spring Boot"
         ]
 
         extracted_skills = []
@@ -67,54 +113,23 @@ class ResumeIntelligenceService:
             if re.search(r'\b' + re.escape(tech) + r'\b', text, re.IGNORECASE):
                 extracted_skills.append(tech)
 
-        # Projects Extraction
-        projects = []
-        if "CareerAI" in text or "Job Matching" in text:
-            projects.append({
-                "name": "CareerAI – Smart Job Matching Portal",
-                "description": "Built a full-stack AI job-matching platform using React and Node.js/Express to analyze resumes against requirements, identify skill gaps, and support data-driven job decisions.",
-                "technologies": ["React", "Node.js", "Express.js", "SQLite", "Gemini API"]
-            })
-        if "Campus Control" in text or "AI + AGI" in text or "Educational" in text:
-            projects.append({
-                "name": "AI + AGI Powered Educational Campus Control System",
-                "description": "Developed a multi-tenant campus management platform using React and FastAPI for academic advising, administrative workflows, and real-time AI study assistant features.",
-                "technologies": ["React", "Python", "FastAPI", "SQLite", "Gemini API"]
-            })
+        unique_skills = list(dict.fromkeys(extracted_skills))
 
-        # Experience Extraction
-        experience = []
-        if "Skylena" in text or "Monitoring" in text or "Intern" in text:
-            experience.append({
-                "company": "Skylena Info Technology Pvt. Ltd.",
-                "role": "Cloud Infrastructure Monitoring Intern",
-                "duration": "Jun 2026 – Jul 2026",
-                "description": "Analyzed server uptime, resource utilization, and system logs across cloud infrastructure, supporting a 25% reduction in undetected alert incidents."
-            })
-
-        # Education Extraction
-        education = []
-        if "KGiSL" in text or "B.Tech" in text or "Artificial Intelligence" in text:
-            education.append({
-                "degree": "B.Tech in Artificial Intelligence & Data Science",
-                "institution": "KGiSL Institute of Technology",
-                "year": "Nov 2023 – Present (CGPA: 9.17/10.0)"
-            })
-
-        # Certifications
-        certifications = []
-        if "Generative AI" in text or "Microsoft" in text:
-            certifications.append("Career Essentials in Generative AI – Microsoft & LinkedIn")
+        summary = (
+            f"Technical profile with demonstrated skills in {', '.join(unique_skills[:5])}."
+            if unique_skills
+            else "Technical resume profile."
+        )
 
         return {
-            "summary": "Full-Stack AI & Data Science B.Tech Student (CGPA 9.17) with hands-on internship experience in Java, Python, React, FastAPI, SQL, and Gemini AI integration.",
-            "skills": list(dict.fromkeys(extracted_skills)) if extracted_skills else ["Java", "Python", "JavaScript", "React", "FastAPI", "SQL", "Gemini API"],
-            "projects": projects,
-            "experience": experience,
-            "education": education,
-            "certifications": certifications,
-            "strongest_areas": ["Full Stack AI Development", "FastAPI & React Architecture", "Cloud Infrastructure & APIs", "Data Structures & Algorithms"],
-            "recommended_focus": ["System Scalability & Microservices", "Database Optimization", "LLM Agent Orchestration"]
+            "summary": summary,
+            "skills": unique_skills,
+            "projects": [],
+            "experience": [],
+            "education": [],
+            "certifications": [],
+            "strongest_areas": unique_skills[:4] if unique_skills else [],
+            "recommended_focus": ["Core Technical Concepts", "Project Architecture"] if unique_skills else []
         }
 
     @staticmethod
@@ -209,16 +224,18 @@ class ResumeIntelligenceService:
             
             data["skills"] = list(dict.fromkeys([s for s in all_skills if isinstance(s, str)]))
 
-            # Ensure projects/experience/education are populated from fallback if AI missed them
-            fb = ResumeIntelligenceService.fallback_rule_based_parse(text)
+            # If AI missed skills completely, supplement from genuine rule-based text extraction
             if not data.get("skills"):
-                data["skills"] = fb["skills"]
-            if not data.get("projects"):
-                data["projects"] = fb["projects"]
-            if not data.get("experience"):
-                data["experience"] = fb["experience"]
-            if not data.get("education"):
-                data["education"] = fb["education"]
+                fb = ResumeIntelligenceService.fallback_rule_based_parse(text)
+                data["skills"] = fb.get("skills", [])
+
+            # Ensure sections are clean lists without fabricating data
+            data["projects"] = [p for p in data.get("projects", []) if isinstance(p, dict)] if isinstance(data.get("projects"), list) else []
+            data["experience"] = [e for e in data.get("experience", []) if isinstance(e, dict)] if isinstance(data.get("experience"), list) else []
+            data["education"] = [ed for ed in data.get("education", []) if isinstance(ed, dict)] if isinstance(data.get("education"), list) else []
+            data["certifications"] = [c for c in data.get("certifications", []) if isinstance(c, str)] if isinstance(data.get("certifications"), list) else []
+            if not data.get("summary"):
+                data["summary"] = f"Technical profile with skills in {', '.join(data['skills'][:5])}." if data["skills"] else "Technical resume profile."
 
             return data
 
@@ -309,8 +326,13 @@ class ResumeIntelligenceService:
         if not q_data:
             q_data = []
             for proj in projects:
-                p_name = proj.get("name", "Project")
-                p_techs = ", ".join(proj.get("technologies", [])) or "your listed technologies"
+                if isinstance(proj, dict):
+                    p_name = proj.get("name", "Project")
+                    techs = proj.get("technologies", [])
+                    p_techs = ", ".join(techs) if isinstance(techs, list) and techs else "your listed technologies"
+                else:
+                    p_name = str(proj)
+                    p_techs = "your listed technologies"
                 
                 q_data.append({
                     "category": "PROJECT",
@@ -326,7 +348,7 @@ class ResumeIntelligenceService:
                 })
                 q_data.append({
                     "category": "ALGORITHM",
-                    "question": f"What algorithm or core data logic powers '{p_name}', and how does it process candidate or application data?",
+                    "question": f"What algorithm or core data logic powers '{p_name}', and how does it process data?",
                     "difficulty": "MEDIUM",
                     "source": p_name
                 })
@@ -338,22 +360,27 @@ class ResumeIntelligenceService:
                 })
                 q_data.append({
                     "category": "SCALABILITY",
-                    "question": f"How would you redesign '{p_name}' to scale effectively for millions of active users?",
+                    "question": f"How would you redesign '{p_name}' to scale effectively for high user traffic?",
                     "difficulty": "HARD",
                     "source": p_name
                 })
 
             for s in skills[:4]:
-                q_data.append({
-                    "category": "TECHNICAL",
-                    "question": f"You listed {s} on your resume. How have you applied {s} in your projects or coursework?",
-                    "difficulty": "MEDIUM",
-                    "source": s
-                })
+                if isinstance(s, str) and s.strip():
+                    q_data.append({
+                        "category": "TECHNICAL",
+                        "question": f"You listed {s.strip()} on your resume. How have you applied {s.strip()} in your projects or coursework?",
+                        "difficulty": "MEDIUM",
+                        "source": s.strip()
+                    })
 
             for exp in experience:
-                comp = exp.get("company", "your role")
-                r = exp.get("role", "Engineer")
+                if isinstance(exp, dict):
+                    comp = exp.get("company", "your role")
+                    r = exp.get("role", "Engineer")
+                else:
+                    comp = str(exp)
+                    r = "Engineer"
                 q_data.append({
                     "category": "EXPERIENCE",
                     "question": f"What were your primary responsibilities and technical contributions as {r} at {comp}?",
@@ -368,6 +395,12 @@ class ResumeIntelligenceService:
                     "difficulty": "HARD",
                     "source": "Architecture"
                 })
+                q_data.append({
+                    "category": "TECHNICAL",
+                    "question": "How do you approach debugging complex issues and identifying performance bottlenecks in your applications?",
+                    "difficulty": "MEDIUM",
+                    "source": "Technical Skills"
+                })
 
         # Store generated questions in DB
         db.query(ResumeQuestion).filter(
@@ -378,17 +411,22 @@ class ResumeIntelligenceService:
 
         saved_questions = []
         for item in q_data:
-            cat = item.get("category", "PROJECT").upper()
-            diff = item.get("difficulty", "MEDIUM").upper()
+            if not isinstance(item, dict):
+                continue
+            cat = str(item.get("category", "PROJECT")).upper()
+            diff = str(item.get("difficulty", "MEDIUM")).upper()
             src = item.get("source") or item.get("target_project_or_skill") or "Resume"
-            
+            q_text = str(item.get("question", "")).strip()
+            if not q_text:
+                continue
+
             rq = ResumeQuestion(
                 resume_id=resume_id,
                 user_id=user_id,
                 category=cat,
-                question_text=item.get("question", ""),
+                question_text=q_text,
                 difficulty=diff,
-                target_project_or_skill=src
+                target_project_or_skill=str(src)
             )
             db.add(rq)
             saved_questions.append(rq)
@@ -497,13 +535,16 @@ class ResumeIntelligenceService:
                 "knowledge_gaps_identified": []
             }
 
+        _bound_score = ResumeIntelligenceService.bound_score
+
         # Update interview record
-        interview.overall_score = eval_data.get("overall_score", 75)
-        interview.technical_score = eval_data.get("technical_score", 75)
-        interview.project_knowledge_score = eval_data.get("project_knowledge_score", 80)
-        interview.communication_score = eval_data.get("communication_score", 70)
-        interview.problem_solving_score = eval_data.get("problem_solving_score", 75)
-        interview.resume_understanding_score = eval_data.get("resume_understanding_score", 80)
+        interview.overall_score = _bound_score(eval_data.get("overall_score"), 75)
+        interview.technical_score = _bound_score(eval_data.get("technical_score"), 75)
+        interview.project_knowledge_score = _bound_score(eval_data.get("project_knowledge_score"), 80)
+        interview.communication_score = _bound_score(eval_data.get("communication_score"), 70)
+        interview.problem_solving_score = _bound_score(eval_data.get("problem_solving_score"), 75)
+        interview.resume_understanding_score = _bound_score(eval_data.get("resume_understanding_score"), 80)
+        eval_data["qa_history"] = qa_history
         interview.feedback_json = json.dumps(eval_data)
         interview.status = "COMPLETED"
         interview.completed_at = datetime.now(timezone.utc)
@@ -516,25 +557,52 @@ class ResumeIntelligenceService:
         # Create knowledge gap entries for weak areas if topic exists in DB
         try:
             gaps = eval_data.get("knowledge_gaps_identified", [])
-            for gap_name in gaps:
-                topic = db.query(Topic).filter(Topic.name.ilike(f"%{gap_name}%")).first()
-                if topic:
-                    existing_eval = db.query(Evaluation).filter(
-                        Evaluation.user_id == user_id,
-                        Evaluation.topic_id == topic.id
-                    ).order_by(Evaluation.created_at.desc()).first()
+            if isinstance(gaps, list):
+                processed_topic_ids = set()
+                seen_names = set()
+                for gap_name in gaps:
+                    if not isinstance(gap_name, str):
+                        continue
+                    clean_gap = gap_name.strip()
+                    if not clean_gap:
+                        continue
+                    lookup_key = clean_gap.lower()
+                    if lookup_key in seen_names:
+                        continue
+                    seen_names.add(lookup_key)
 
-                    db_eval = Evaluation(
-                        user_id=user_id,
-                        topic_id=topic.id,
-                        explanation=f"Resume Interview weakness identified in {gap_name}",
-                        overall_score=min(55, eval_data.get("technical_score", 55)),
-                        ai_score=min(55, eval_data.get("technical_score", 55)),
-                        ai_insight=f"Identified weakness during Resume Interview: {gap_name}"
-                    )
-                    db.add(db_eval)
-                    db.commit()
+                    topic = db.query(Topic).filter(
+                        func.lower(Topic.name) == lookup_key
+                    ).first()
+
+                    if topic and topic.id not in processed_topic_ids:
+                        processed_topic_ids.add(topic.id)
+                        existing_synthetic = db.query(Evaluation).filter(
+                            Evaluation.user_id == user_id,
+                            Evaluation.topic_id == topic.id,
+                            Evaluation.explanation.like(f"{RESUME_WEAKNESS_PREFIX}%")
+                        ).order_by(Evaluation.created_at.desc()).first()
+
+                        safe_score = min(55, max(0, _bound_score(eval_data.get("technical_score"), 55)))
+                        if existing_synthetic:
+                            existing_synthetic.explanation = f"{RESUME_WEAKNESS_PREFIX}{clean_gap}"
+                            existing_synthetic.overall_score = safe_score
+                            existing_synthetic.ai_score = safe_score
+                            existing_synthetic.ai_insight = f"Identified weakness during Resume Interview: {clean_gap}"
+                            existing_synthetic.created_at = datetime.now(timezone.utc)
+                        else:
+                            db_eval = Evaluation(
+                                user_id=user_id,
+                                topic_id=topic.id,
+                                explanation=f"{RESUME_WEAKNESS_PREFIX}{clean_gap}",
+                                overall_score=safe_score,
+                                ai_score=safe_score,
+                                ai_insight=f"Identified weakness during Resume Interview: {clean_gap}"
+                            )
+                            db.add(db_eval)
+                        db.commit()
         except Exception as gap_err:
+            db.rollback()
             logger.error(f"Error syncing resume interview knowledge gaps: {gap_err}")
 
         return eval_data

@@ -41,12 +41,18 @@ class AnalyticsService:
         # -------------------------------------------------------------
         # 1. Base Evaluations & Interviews Queries
         # -------------------------------------------------------------
-        evals_query = db.query(Evaluation).filter(Evaluation.user_id == user_id)
+        evals_query = db.query(Evaluation).filter(
+            Evaluation.user_id == user_id,
+            Evaluation.genuine_predicate()
+        )
         if cutoff_date:
             evals_query = evals_query.filter(Evaluation.created_at >= cutoff_date)
         evals = evals_query.order_by(Evaluation.created_at.asc()).all()
 
-        all_evals = db.query(Evaluation).filter(Evaluation.user_id == user_id).all()
+        all_evals = db.query(Evaluation).filter(
+            Evaluation.user_id == user_id,
+            Evaluation.genuine_predicate()
+        ).all()
 
         ints_query = db.query(Interview).filter(Interview.user_id == user_id)
         if cutoff_date:
