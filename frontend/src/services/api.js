@@ -49,13 +49,17 @@ export const startInterview = async (targetRole, difficulty, interviewType, resu
     return response.data;
 };
 
-export const answerInterviewQuestion = async (interviewId, questionId, answer, isFinal) => {
-    const response = await api.post('/interview/answer', {
+export const answerInterviewQuestion = async (interviewId, questionId, answer, isFinal, durationSeconds = null) => {
+    const payload = {
         interview_id: interviewId,
         current_question_id: questionId,
         answer,
         is_final: isFinal
-    });
+    };
+    if (durationSeconds !== null && durationSeconds > 0) {
+        payload.duration_seconds = durationSeconds;
+    }
+    const response = await api.post('/interview/answer', payload);
     return response.data;
 };
 

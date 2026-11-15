@@ -39,6 +39,9 @@ const MockInterview = () => {
     const [report, setReport] = useState(null);
 
     const recognitionRef = useRef(null);
+    const recordingStartTimeRef = useRef(null);
+    const cumulativeDurationRef = useRef(0);
+    const hasUsedVoiceRef = useRef(false);
 
     // Check active resume & active existing session on load
     useEffect(() => {
@@ -69,6 +72,12 @@ const MockInterview = () => {
             rec.interimResults = true;
             rec.lang = 'en-US';
 
+            rec.onstart = () => {
+                recordingStartTimeRef.current = Date.now();
+                hasUsedVoiceRef.current = true;
+                setIsRecording(true);
+            };
+
             rec.onresult = (event) => {
                 let finalTranscript = '';
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
@@ -83,10 +92,18 @@ const MockInterview = () => {
 
             rec.onerror = (err) => {
                 console.error('Speech recognition error:', err);
+                if (recordingStartTimeRef.current) {
+                    cumulativeDurationRef.current += (Date.now() - recordingStartTimeRef.current) / 1000;
+                    recordingStartTimeRef.current = null;
+                }
                 setIsRecording(false);
             };
 
             rec.onend = () => {
+                if (recordingStartTimeRef.current) {
+                    cumulativeDurationRef.current += (Date.now() - recordingStartTimeRef.current) / 1000;
+                    recordingStartTimeRef.current = null;
+                }
                 setIsRecording(false);
             };
 
@@ -110,12 +127,21 @@ const MockInterview = () => {
         }
 
         if (isRecording) {
-            recognitionRef.current.stop();
+            try {
+                recognitionRef.current.stop();
+            } catch (_) {}
+            if (recordingStartTimeRef.current) {
+                cumulativeDurationRef.current += (Date.now() - recordingStartTimeRef.current) / 1000;
+                recordingStartTimeRef.current = null;
+            }
             setIsRecording(false);
         } else {
             setError(null);
-            recognitionRef.current.start();
-            setIsRecording(true);
+            try {
+                recognitionRef.current.start();
+            } catch (err) {
+                console.error('Failed to start speech recognition:', err);
+            }
         }
     };
 
@@ -148,6 +174,9 @@ const MockInterview = () => {
             setTotalQuestions(res.data.total_questions || questionCount);
             setAnswerText('');
             setLastFeedback(null);
+            cumulativeDurationRef.current = 0;
+            recordingStartTimeRef.current = null;
+            hasUsedVoiceRef.current = false;
             setStatus('active');
             speak(res.data.question);
         } catch (err) {
@@ -177,6 +206,9 @@ const MockInterview = () => {
             setCurrentStep(activeSession.current_step || 1);
             setTotalQuestions(activeSession.total_questions || 10);
             setAnswerText('');
+            cumulativeDurationRef.current = 0;
+            recordingStartTimeRef.current = null;
+            hasUsedVoiceRef.current = false;
             setStatus('active');
             if (activeSession.last_question?.question) {
                 speak(activeSession.last_question.question);
@@ -194,8 +226,20 @@ const MockInterview = () => {
         }
 
         if (isRecording && recognitionRef.current) {
-            recognitionRef.current.stop();
+            try {
+                recognitionRef.current.stop();
+            } catch (_) {}
+            if (recordingStartTimeRef.current) {
+                cumulativeDurationRef.current += (Date.now() - recordingStartTimeRef.current) / 1000;
+                recordingStartTimeRef.current = null;
+            }
             setIsRecording(false);
+        }
+
+        // Measure estimated duration ONLY if voice recognition was used for this answer
+        let durationToSend = null;
+        if (hasUsedVoiceRef.current && cumulativeDurationRef.current > 0) {
+            durationToSend = Math.round(cumulativeDurationRef.current * 10) / 10;
         }
 
         setError(null);
@@ -207,18 +251,24 @@ const MockInterview = () => {
 
         try {
             const isFinal = currentStep >= totalQuestions;
-            const res = await api.post('/interview/answer', {
+            const payload = {
                 interview_id: interviewId,
                 current_question_id: currentQuestion?.id,
                 answer: answerText,
                 is_final: isFinal
-            });
+            };
+            if (durationToSend !== null && durationToSend > 0) {
+                payload.duration_seconds = durationToSend;
+            }
+
+            const res = await api.post('/interview/answer', payload);
 
             setLastFeedback({
                 eval_result: res.data.eval_result,
                 difficulty_change: res.data.difficulty_change,
                 old_difficulty: res.data.old_difficulty,
-                new_difficulty: res.data.new_difficulty
+                new_difficulty: res.data.new_difficulty,
+                communication_analysis: res.data.communication_analysis || null
             });
 
             if (res.data.is_complete) {
@@ -237,6 +287,9 @@ const MockInterview = () => {
                 setCurrentDifficulty(res.data.next_difficulty || currentDifficulty);
                 setCurrentStep(res.data.current_step);
                 setAnswerText('');
+                cumulativeDurationRef.current = 0;
+                recordingStartTimeRef.current = null;
+                hasUsedVoiceRef.current = false;
                 setStatus('active');
                 speak(res.data.next_question);
             }
@@ -502,12 +555,21 @@ const MockInterview = () => {
                                             </div>
                                             <div className="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
                                                 <span className="text-[10px] text-slate-500 uppercase block font-bold">Speaking Pace</span>
-                                                <span className="font-bold text-indigo-300">{lastFeedback.communication_analysis.speaking_pace}</span>
+                                                <span className="font-bold text-indigo-300">{lastFeedback.communication_analysis.speaking_pace || 'N/A'}</span>
+                                                {lastFeedback.communication_analysis.words_per_minute && (
+                                                    <span className="text-[9px] text-slate-400 block font-mono">
+                                                        ~{lastFeedback.communication_analysis.words_per_minute} WPM (est.)
+                                                    </span>
+                                                )}
                                             </div>
                                             <div className="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
                                                 <span className="text-[10px] text-slate-500 uppercase block font-bold">Filler Words</span>
                                                 <span className="font-bold text-amber-400 font-mono">{lastFeedback.communication_analysis.filler_word_count}</span>
                                             </div>
+                                        </div>
+
+                                        <div className="text-[10px] text-slate-500 italic px-1">
+                                            * Pace and WPM are estimates based on speech-recognition session duration, not exact acoustic speech-only duration.
                                         </div>
 
                                         {lastFeedback.communication_analysis.grammar_improvements && lastFeedback.communication_analysis.grammar_improvements.length > 0 && (
@@ -720,6 +782,110 @@ const MockInterview = () => {
                                     ))}
                                 </ul>
                             </div>
+                        </div>
+
+                        {/* Communication Coach Summary */}
+                        <div className="bg-slate-800/90 border border-slate-700 p-6 rounded-3xl space-y-4 shadow-xl">
+                            <div className="flex items-center justify-between border-b border-slate-700/60 pb-3">
+                                <span className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                                    <Sparkles className="w-4 h-4 text-emerald-400" />
+                                    Communication Delivery & Voice Summary
+                                </span>
+                                {report.communication_summary?.average_communication_score && (
+                                    <span className="text-xs font-black text-emerald-400 font-mono">
+                                        Overall Communication: {report.communication_summary.average_communication_score}%
+                                    </span>
+                                )}
+                            </div>
+
+                            {report.communication_summary ? (
+                                <div className="space-y-4">
+                                    {/* Metrics Grid */}
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                                        <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800">
+                                            <span className="text-[10px] text-slate-500 uppercase block font-bold">Speaking Pace</span>
+                                            {report.communication_summary.has_voice_data && report.communication_summary.overall_speaking_pace ? (
+                                                <>
+                                                    <span className="font-bold text-indigo-300 text-sm block mt-0.5">
+                                                        {report.communication_summary.overall_speaking_pace}
+                                                    </span>
+                                                    {report.communication_summary.average_wpm && (
+                                                        <span className="text-[10px] text-slate-400 font-mono block mt-0.5">
+                                                            ~{report.communication_summary.average_wpm} WPM (est.)
+                                                        </span>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <span className="text-xs text-slate-500 italic block mt-1">
+                                                    Text-only / Not measured
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800">
+                                            <span className="text-[10px] text-slate-500 uppercase block font-bold">Total Filler Words</span>
+                                            <span className="font-bold text-amber-400 text-sm font-mono block mt-0.5">
+                                                {report.communication_summary.total_filler_words ?? 0}
+                                            </span>
+                                            {report.communication_summary.top_filler_words && report.communication_summary.top_filler_words.length > 0 ? (
+                                                <div className="flex flex-wrap gap-1 mt-1">
+                                                    {report.communication_summary.top_filler_words.slice(0, 3).map((item, idx) => (
+                                                        <span key={idx} className="text-[9px] bg-slate-900 text-amber-300/80 px-1.5 py-0.5 rounded border border-slate-800 font-mono">
+                                                            {item.word}: {item.count}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <span className="text-[10px] text-emerald-400/80 block mt-0.5">None detected</span>
+                                            )}
+                                        </div>
+
+                                        <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800">
+                                            <span className="text-[10px] text-slate-500 uppercase block font-bold">Clarity & Grammar</span>
+                                            <div className="mt-1 font-mono text-xs">
+                                                <span className="text-white block">Clarity: <b>{report.communication_summary.average_clarity_score ?? 'N/A'}%</b></span>
+                                                <span className="text-emerald-400 block mt-0.5">Grammar: <b>{report.communication_summary.average_grammar_score ?? 'N/A'}%</b></span>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800">
+                                            <span className="text-[10px] text-slate-500 uppercase block font-bold">Vocab & Structure</span>
+                                            <div className="mt-1 font-mono text-xs">
+                                                <span className="text-indigo-300 block">Vocab: <b>{report.communication_summary.average_vocabulary_score ?? 'N/A'}%</b></span>
+                                                <span className="text-slate-300 block mt-0.5">Structure: <b>{report.communication_summary.average_structure_score ?? 'N/A'}%</b></span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Estimated Timing Disclaimer */}
+                                    {report.communication_summary.has_voice_data && (
+                                        <p className="text-[10px] text-slate-500 italic px-1">
+                                            * WPM and speaking pace are estimates based on speech-recognition session duration, not exact acoustic speech-only duration.
+                                        </p>
+                                    )}
+
+                                    {/* Grammar Improvement Recommendations */}
+                                    {report.communication_summary.grammar_improvements && report.communication_summary.grammar_improvements.length > 0 && (
+                                        <div className="p-4 bg-indigo-950/30 border border-indigo-500/20 rounded-2xl space-y-2">
+                                            <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider block">
+                                                Grammar Improvement Recommendations
+                                            </span>
+                                            <div className="space-y-1.5 text-xs">
+                                                {report.communication_summary.grammar_improvements.slice(0, 3).map((tip, idx) => (
+                                                    <div key={idx} className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800 space-y-0.5">
+                                                        <div className="text-slate-400 line-through text-[11px]">"{tip.incorrect}"</div>
+                                                        <div className="text-emerald-300 font-bold text-[11px]">✓ "{tip.improved}"</div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <p className="text-xs text-slate-500 italic">
+                                    Communication analysis was unavailable for this interview session.
+                                </p>
+                            )}
                         </div>
 
                         {/* Next Action Navigation Buttons */}

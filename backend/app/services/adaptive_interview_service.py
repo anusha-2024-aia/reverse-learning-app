@@ -487,6 +487,19 @@ class AdaptiveInterviewService:
                 "recommended_preparation": ["Review database indexing & system scalability", "Practice system design questions"]
             }
 
+        # AI Communication Coach Aggregated Summary
+        communication_summary = None
+        try:
+            from app.services.communication_coach_service import CommunicationCoachService
+            communication_summary = CommunicationCoachService.aggregate_interview_communication(
+                db=db,
+                interview_id=interview_id,
+                user_id=user_id
+            )
+        except Exception as comm_err:
+            logger.error(f"Failed to aggregate communication summary for interview {interview_id}: {type(comm_err).__name__}")
+            communication_summary = None
+
         report_payload = {
             "overall_score": avg_overall,
             "technical_score": avg_tech,
@@ -501,7 +514,8 @@ class AdaptiveInterviewService:
             "strengths": report_data.get("strengths", []),
             "weaknesses": report_data.get("weaknesses", []),
             "recommended_preparation": report_data.get("recommended_preparation", []),
-            "weak_topics_logged": weak_topics
+            "weak_topics_logged": weak_topics,
+            "communication_summary": communication_summary
         }
 
         # Save to interview record

@@ -350,7 +350,7 @@ class CommunicationAnalysis(Base):
     vocabulary_score = Column(Integer, nullable=False, default=70) # 0-100
     structure_score = Column(Integer, nullable=False, default=70) # 0-100
     
-    speaking_pace = Column(String, default="Good") # Slow, Good, Fast
+    speaking_pace = Column(String, nullable=True) # Slow, Good, Fast
     words_per_minute = Column(Integer, nullable=True) # Only if audio duration reliably provided
     pause_count = Column(Integer, nullable=True) # Only if audio data supports it
     filler_word_count = Column(Integer, default=0)

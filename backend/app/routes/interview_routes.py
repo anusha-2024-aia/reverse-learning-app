@@ -1,4 +1,5 @@
 import json
+import math
 import os
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Body
 from pydantic import BaseModel
@@ -33,6 +34,7 @@ class AnswerQuestionRequest(BaseModel):
     current_question_id: Optional[int] = None
     answer: str
     is_final: Optional[bool] = False
+    duration_seconds: Optional[float] = None
 
 import uuid
 MAX_RESUME_SIZE = 10 * 1024 * 1024 # 10MB
@@ -271,51 +273,79 @@ async def process_answer(
         db.add(ans_record)
     
     db.commit()
+    db.refresh(ans_record)
 
-    # Phase 10: AI Communication Coach Analysis
-    duration_secs = payload.get("audio_duration_seconds") or payload.get("duration_seconds")
-    comm_record = await CommunicationCoachService.process_and_save_communication_analysis(
-        db=db,
-        user_id=current_user.id,
-        transcript=answer_text,
-        question_text=question.question_text,
-        interview_id=interview.id,
-        answer_id=ans_record.id,
-        duration_seconds=duration_secs
-    )
+    # Phase 10: AI Communication Coach Analysis (isolated from primary evaluation)
+    comm_payload = None
+    try:
+        raw_duration = payload.get("duration_seconds")
+        if raw_duration is None:
+            raw_duration = payload.get("audio_duration_seconds")
 
-    grammar_imps = []
-    if comm_record.grammar_improvements_json:
+        duration_secs = None
+        if raw_duration is not None and not isinstance(raw_duration, bool):
+            try:
+                parsed_dur = float(raw_duration)
+                if not (math.isnan(parsed_dur) or math.isinf(parsed_dur)) and parsed_dur > 0:
+                    duration_secs = parsed_dur
+            except (ValueError, TypeError):
+                duration_secs = None
+
+        comm_record = await CommunicationCoachService.process_and_save_communication_analysis(
+            db=db,
+            user_id=current_user.id,
+            transcript=answer_text,
+            question_text=question.question_text,
+            interview_id=interview.id,
+            answer_id=ans_record.id,
+            duration_seconds=duration_secs
+        )
+
+        if comm_record:
+            grammar_imps = []
+            if comm_record.grammar_improvements_json:
+                try:
+                    grammar_imps = json.loads(comm_record.grammar_improvements_json)
+                except Exception:
+                    pass
+
+            filler_brk = {}
+            if comm_record.filler_words_json:
+                try:
+                    filler_brk = json.loads(comm_record.filler_words_json)
+                except Exception:
+                    pass
+
+            comm_payload = {
+                "communication_score": comm_record.communication_score,
+                "clarity_score": comm_record.clarity_score,
+                "grammar_score": comm_record.grammar_score,
+                "vocabulary_score": comm_record.vocabulary_score,
+                "structure_score": comm_record.structure_score,
+                "speaking_pace": comm_record.speaking_pace,
+                "words_per_minute": comm_record.words_per_minute,
+                "pause_count": comm_record.pause_count,
+                "filler_word_count": comm_record.filler_word_count,
+                "filler_words": filler_brk,
+                "grammar_feedback": comm_record.grammar_feedback,
+                "grammar_improvements": grammar_imps,
+                "vocabulary_feedback": comm_record.vocabulary_feedback,
+                "clarity_feedback": comm_record.clarity_feedback,
+                "structure_feedback": comm_record.structure_feedback,
+                "ai_coach_recommendation": comm_record.ai_coach_recommendation
+            }
+    except Exception as comm_err:
+        logger.error(f"Communication analysis failed during interview answer processing: {type(comm_err).__name__}")
         try:
-            grammar_imps = json.loads(comm_record.grammar_improvements_json)
-        except:
+            db.rollback()
+        except Exception:
             pass
-
-    filler_brk = {}
-    if comm_record.filler_words_json:
-        try:
-            filler_brk = json.loads(comm_record.filler_words_json)
-        except:
-            pass
-
-    comm_payload = {
-        "communication_score": comm_record.communication_score,
-        "clarity_score": comm_record.clarity_score,
-        "grammar_score": comm_record.grammar_score,
-        "vocabulary_score": comm_record.vocabulary_score,
-        "structure_score": comm_record.structure_score,
-        "speaking_pace": comm_record.speaking_pace,
-        "words_per_minute": comm_record.words_per_minute,
-        "pause_count": comm_record.pause_count,
-        "filler_word_count": comm_record.filler_word_count,
-        "filler_words": filler_brk,
-        "grammar_feedback": comm_record.grammar_feedback,
-        "grammar_improvements": grammar_imps,
-        "vocabulary_feedback": comm_record.vocabulary_feedback,
-        "clarity_feedback": comm_record.clarity_feedback,
-        "structure_feedback": comm_record.structure_feedback,
-        "ai_coach_recommendation": comm_record.ai_coach_recommendation
-    }
+        comm_payload = None
+        # Explicitly reload interview to ensure valid, attached ORM state after rollback
+        interview = db.query(Interview).filter(
+            Interview.id == interview_id,
+            Interview.user_id == current_user.id
+        ).first()
 
     # Deterministic difficulty transition calculation (based on technical evaluation)
     old_diff = (interview.current_difficulty or "MEDIUM").upper()

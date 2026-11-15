@@ -1,3 +1,4 @@
+import math
 from pydantic import BaseModel, field_validator
 from datetime import datetime
 from typing import Optional, Literal
@@ -114,3 +115,23 @@ class AdaptiveRecommendationOut(BaseModel):
 
 class AdaptiveRecommendationUpdate(BaseModel):
     status: str
+
+class SubmitAnswerRequest(BaseModel):
+    interview_id: int
+    current_question_id: Optional[int] = None
+    answer: str
+    is_final: Optional[bool] = False
+    duration_seconds: Optional[float] = None
+
+    @field_validator("duration_seconds", mode="before")
+    @classmethod
+    def validate_duration(cls, v):
+        if v is None or isinstance(v, bool):
+            return None
+        try:
+            val = float(v)
+            if math.isnan(val) or math.isinf(val) or val <= 0:
+                return None
+            return val
+        except (ValueError, TypeError):
+            return None

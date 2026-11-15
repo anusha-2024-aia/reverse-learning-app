@@ -1,5 +1,6 @@
 import re
 import json
+import math
 from datetime import datetime, timezone
 from typing import Optional, List
 from sqlalchemy.orm import Session
@@ -51,17 +52,29 @@ class CommunicationCoachService:
     @staticmethod
     def analyze_speaking_pace(transcript: str, duration_seconds: Optional[float] = None) -> dict:
         """
-        Analyzes speaking pace. If duration_seconds is reliably provided, computes exact WPM.
-        Otherwise falls back cleanly without fabricating metrics.
+        Calculates Words Per Minute (WPM) and classifies speaking pace.
+        WPM is calculated only when transcript word count and a valid positive duration are available.
+        Elapsed recognition-session duration is an estimate, not exact acoustic speaking time.
         """
         if not transcript or not transcript.strip():
-            return {"pace": "Good", "wpm": None, "pause_count": None}
+            return {"pace": None, "wpm": None, "pause_count": None}
 
         words = transcript.strip().split()
         word_count = len(words)
 
-        if duration_seconds and duration_seconds > 0:
-            wpm = round((word_count / duration_seconds) * 60)
+        is_valid_duration = False
+        clean_duration = 0.0
+        if duration_seconds is not None and not isinstance(duration_seconds, bool):
+            try:
+                parsed = float(duration_seconds)
+                if not (math.isnan(parsed) or math.isinf(parsed)) and parsed > 0:
+                    clean_duration = parsed
+                    is_valid_duration = True
+            except (ValueError, TypeError):
+                is_valid_duration = False
+
+        if is_valid_duration and word_count > 0:
+            wpm = round((word_count / clean_duration) * 60)
             if wpm < 110:
                 pace = "Slow"
             elif wpm > 185:
@@ -69,27 +82,16 @@ class CommunicationCoachService:
             else:
                 pace = "Good"
 
-            # Estimate significant pauses if duration is provided
-            expected_seconds = (word_count / 140) * 60
-            pause_diff = max(0, duration_seconds - expected_seconds)
-            pause_count = min(10, round(pause_diff / 1.5)) if pause_diff > 1.0 else 0
-
+            # Do not fabricate pause counts without acoustic audio timestamps
             return {
                 "pace": pace,
                 "wpm": wpm,
-                "pause_count": pause_count
+                "pause_count": None
             }
 
-        # Qualitative fallback when duration is omitted
-        if word_count < 10:
-            pace = "Slow"
-        elif word_count > 120:
-            pace = "Fast"
-        else:
-            pace = "Good"
-
+        # If duration is missing, zero, negative, or invalid, do not classify pace from word count alone
         return {
-            "pace": pace,
+            "pace": None,
             "wpm": None,
             "pause_count": None
         }
@@ -100,7 +102,7 @@ class CommunicationCoachService:
         grammar: int,
         vocabulary: int,
         structure: int,
-        pace: str,
+        pace: Optional[str],
         filler_count: int
     ) -> int:
         """
@@ -112,7 +114,12 @@ class CommunicationCoachService:
         - Speaking Pace Control: 10%
         - Filler Word Control: 10%
         """
-        pace_score = 90 if pace == "Good" else 70
+        if pace == "Good":
+            pace_score = 90
+        elif pace in ("Slow", "Fast"):
+            pace_score = 70
+        else:
+            pace_score = 75  # Neutral default when pace was not measured
 
         if filler_count == 0:
             filler_score = 100
@@ -298,10 +305,132 @@ class CommunicationCoachService:
             ai_coach_recommendation=eval_info["ai_coach_recommendation"]
         )
 
-        db.add(record)
-        db.commit()
-        db.refresh(record)
-        return record
+        try:
+            db.add(record)
+            db.commit()
+            db.refresh(record)
+            return record
+        except Exception as err:
+            try:
+                db.rollback()
+            except Exception:
+                pass
+            logger.error(f"Failed to persist communication analysis: {type(err).__name__}")
+            raise
+
+    @staticmethod
+    def aggregate_interview_communication(db: Session, interview_id: int, user_id: int) -> Optional[dict]:
+        """
+        Aggregates communication analysis metrics across all answers for a specific interview session.
+        Strictly filters by both interview_id and user_id.
+        Excludes standalone practice sessions (interview_id is None) and other users/interviews.
+        Returns None if no communication records exist for this interview.
+        """
+        if not interview_id or not user_id:
+            return None
+
+        records = db.query(models.CommunicationAnalysis).filter(
+            models.CommunicationAnalysis.interview_id == interview_id,
+            models.CommunicationAnalysis.user_id == user_id
+        ).order_by(models.CommunicationAnalysis.id.asc()).all()
+
+        if not records:
+            return None
+
+        # 1. Scores (non-null only)
+        comm_scores = [r.communication_score for r in records if r.communication_score is not None]
+        clarity_scores = [r.clarity_score for r in records if r.clarity_score is not None]
+        grammar_scores = [r.grammar_score for r in records if r.grammar_score is not None]
+        vocab_scores = [r.vocabulary_score for r in records if r.vocabulary_score is not None]
+        struct_scores = [r.structure_score for r in records if r.structure_score is not None]
+
+        avg_comm = round(sum(comm_scores) / len(comm_scores)) if comm_scores else None
+        avg_clarity = round(sum(clarity_scores) / len(clarity_scores)) if clarity_scores else None
+        avg_grammar = round(sum(grammar_scores) / len(grammar_scores)) if grammar_scores else None
+        avg_vocab = round(sum(vocab_scores) / len(vocab_scores)) if vocab_scores else None
+        avg_struct = round(sum(struct_scores) / len(struct_scores)) if struct_scores else None
+
+        # 2. WPM & Speaking Pace (valid positive non-null WPM only)
+        valid_wpms = [r.words_per_minute for r in records if r.words_per_minute is not None and r.words_per_minute > 0]
+        has_voice_data = len(valid_wpms) > 0
+
+        if has_voice_data:
+            avg_wpm = round(sum(valid_wpms) / len(valid_wpms))
+            if avg_wpm < 110:
+                overall_pace = "Slow"
+            elif avg_wpm > 185:
+                overall_pace = "Fast"
+            else:
+                overall_pace = "Good"
+        else:
+            avg_wpm = None
+            overall_pace = None
+
+        # 3. Filler words aggregation
+        recorded_filler_counts = [r.filler_word_count for r in records if r.filler_word_count is not None]
+        total_filler_count = sum(recorded_filler_counts) if recorded_filler_counts else 0
+
+        combined_fillers: dict[str, int] = {}
+        for r in records:
+            if r.filler_words_json and isinstance(r.filler_words_json, str):
+                try:
+                    parsed = json.loads(r.filler_words_json)
+                    if isinstance(parsed, dict):
+                        for word, count in parsed.items():
+                            if isinstance(word, str) and isinstance(count, (int, float)) and count > 0:
+                                clean_word = word.strip().lower()
+                                combined_fillers[clean_word] = combined_fillers.get(clean_word, 0) + int(count)
+                except Exception:
+                    pass
+
+        top_fillers = sorted(
+            [{"word": word, "count": count} for word, count in combined_fillers.items()],
+            key=lambda x: x["count"],
+            reverse=True
+        )
+
+        # 4. Grammar improvement suggestions (deduplicate while preserving order)
+        grammar_improvements = []
+        seen_incorrect = set()
+        for r in records:
+            if r.grammar_improvements_json and isinstance(r.grammar_improvements_json, str):
+                try:
+                    parsed_tips = json.loads(r.grammar_improvements_json)
+                    if isinstance(parsed_tips, list):
+                        for tip in parsed_tips:
+                            if isinstance(tip, dict):
+                                inc = tip.get("incorrect")
+                                if isinstance(inc, str) and inc.strip():
+                                    key = inc.strip().lower()
+                                    if key not in seen_incorrect:
+                                        seen_incorrect.add(key)
+                                        grammar_improvements.append({
+                                            "incorrect": tip.get("incorrect", ""),
+                                            "improved": tip.get("improved", ""),
+                                            "explanation": tip.get("explanation", "")
+                                        })
+                except Exception:
+                    pass
+
+        # 5. Recommendation / feedback summary
+        recommendations = [r.ai_coach_recommendation for r in records if r.ai_coach_recommendation and r.ai_coach_recommendation.strip()]
+        coach_recommendation = recommendations[-1] if recommendations else None
+
+        return {
+            "total_answers_analyzed": len(records),
+            "has_voice_data": has_voice_data,
+            "average_communication_score": avg_comm,
+            "average_clarity_score": avg_clarity,
+            "average_grammar_score": avg_grammar,
+            "average_vocabulary_score": avg_vocab,
+            "average_structure_score": avg_struct,
+            "average_wpm": avg_wpm,
+            "overall_speaking_pace": overall_pace,
+            "total_filler_words": total_filler_count,
+            "top_filler_words": top_fillers,
+            "grammar_improvements": grammar_improvements,
+            "ai_coach_recommendation": coach_recommendation
+        }
 
     @staticmethod
     def get_communication_progress(db: Session, user_id: int) -> dict:
