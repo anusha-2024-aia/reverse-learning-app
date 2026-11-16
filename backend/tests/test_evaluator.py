@@ -1,6 +1,6 @@
 import pytest
 import json
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 from app.ai_service.gemini_agent import evaluate_explanation
 
 class MockChunk:
@@ -23,8 +23,13 @@ class MockStreamResponse:
         # Yield the content as a single chunk for simplicity in mocking
         yield MockChunk(self._content)
 
+    def __await__(self):
+        async def _resolve():
+            return self
+        return _resolve().__await__()
+
 @pytest.mark.anyio
-@patch("app.ai_service.gemini_agent.client.chat.completions.create")
+@patch("app.ai_service.gemini_agent.client.chat.completions.create", new_callable=AsyncMock)
 async def test_evaluate_explanation_perfect_score(mock_create):
     mock_json = {
         "score": 10,
@@ -45,7 +50,7 @@ async def test_evaluate_explanation_perfect_score(mock_create):
     assert result["summary"] == "Excellent explanation with perfect grammar."
 
 @pytest.mark.anyio
-@patch("app.ai_service.gemini_agent.client.chat.completions.create")
+@patch("app.ai_service.gemini_agent.client.chat.completions.create", new_callable=AsyncMock)
 async def test_evaluate_explanation_errors_found(mock_create):
     mock_json = {
         "score": 5,

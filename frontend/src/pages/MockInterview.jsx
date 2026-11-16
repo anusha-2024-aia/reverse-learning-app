@@ -129,7 +129,9 @@ const MockInterview = () => {
         if (isRecording) {
             try {
                 recognitionRef.current.stop();
-            } catch (_) {}
+            } catch {
+                // SpeechRecognition may throw if already stopped or inactive
+            }
             if (recordingStartTimeRef.current) {
                 cumulativeDurationRef.current += (Date.now() - recordingStartTimeRef.current) / 1000;
                 recordingStartTimeRef.current = null;
@@ -228,7 +230,9 @@ const MockInterview = () => {
         if (isRecording && recognitionRef.current) {
             try {
                 recognitionRef.current.stop();
-            } catch (_) {}
+            } catch {
+                // SpeechRecognition may throw if already stopped or inactive
+            }
             if (recordingStartTimeRef.current) {
                 cumulativeDurationRef.current += (Date.now() - recordingStartTimeRef.current) / 1000;
                 recordingStartTimeRef.current = null;
@@ -520,9 +524,9 @@ const MockInterview = () => {
                                         <span className="text-xs font-black text-indigo-400 font-mono">
                                             Technical: {lastFeedback.eval_result?.overall_score}%
                                         </span>
-                                        {lastFeedback.communication_analysis && (
+                                        {lastFeedback.communication_analysis?.communication_score != null && (
                                             <span className="text-xs font-black text-emerald-400 font-mono">
-                                                Communication: {lastFeedback.communication_analysis?.communication_score}%
+                                                Communication: {lastFeedback.communication_analysis.communication_score}%
                                             </span>
                                         )}
                                         {lastFeedback.difficulty_change === 'INCREASED' && (
@@ -556,7 +560,7 @@ const MockInterview = () => {
                                             <div className="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
                                                 <span className="text-[10px] text-slate-500 uppercase block font-bold">Speaking Pace</span>
                                                 <span className="font-bold text-indigo-300">{lastFeedback.communication_analysis.speaking_pace || 'N/A'}</span>
-                                                {lastFeedback.communication_analysis.words_per_minute && (
+                                                {lastFeedback.communication_analysis.words_per_minute != null && (
                                                     <span className="text-[9px] text-slate-400 block font-mono">
                                                         ~{lastFeedback.communication_analysis.words_per_minute} WPM (est.)
                                                     </span>
@@ -680,7 +684,7 @@ const MockInterview = () => {
                             </div>
                             <div className="bg-slate-800/80 p-5 rounded-2xl border border-slate-700/80 shadow-lg">
                                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Communication</span>
-                                <div className="text-2xl font-black text-indigo-400 mt-1 font-mono">{report.communication_score}%</div>
+                                <div className="text-2xl font-black text-indigo-400 mt-1 font-mono">{report.communication_score != null ? `${report.communication_score}%` : 'N/A'}</div>
                             </div>
                             <div className="bg-slate-800/80 p-5 rounded-2xl border border-slate-700/80 shadow-lg">
                                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Problem Solving</span>
@@ -791,7 +795,7 @@ const MockInterview = () => {
                                     <Sparkles className="w-4 h-4 text-emerald-400" />
                                     Communication Delivery & Voice Summary
                                 </span>
-                                {report.communication_summary?.average_communication_score && (
+                                {report.communication_summary?.average_communication_score != null && (
                                     <span className="text-xs font-black text-emerald-400 font-mono">
                                         Overall Communication: {report.communication_summary.average_communication_score}%
                                     </span>
@@ -809,7 +813,7 @@ const MockInterview = () => {
                                                     <span className="font-bold text-indigo-300 text-sm block mt-0.5">
                                                         {report.communication_summary.overall_speaking_pace}
                                                     </span>
-                                                    {report.communication_summary.average_wpm && (
+                                                    {report.communication_summary.average_wpm != null && (
                                                         <span className="text-[10px] text-slate-400 font-mono block mt-0.5">
                                                             ~{report.communication_summary.average_wpm} WPM (est.)
                                                         </span>
@@ -843,16 +847,16 @@ const MockInterview = () => {
                                         <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800">
                                             <span className="text-[10px] text-slate-500 uppercase block font-bold">Clarity & Grammar</span>
                                             <div className="mt-1 font-mono text-xs">
-                                                <span className="text-white block">Clarity: <b>{report.communication_summary.average_clarity_score ?? 'N/A'}%</b></span>
-                                                <span className="text-emerald-400 block mt-0.5">Grammar: <b>{report.communication_summary.average_grammar_score ?? 'N/A'}%</b></span>
+                                                <span className="text-white block">Clarity: <b>{report.communication_summary.average_clarity_score != null ? `${report.communication_summary.average_clarity_score}%` : 'N/A'}</b></span>
+                                                <span className="text-emerald-400 block mt-0.5">Grammar: <b>{report.communication_summary.average_grammar_score != null ? `${report.communication_summary.average_grammar_score}%` : 'N/A'}</b></span>
                                             </div>
                                         </div>
 
                                         <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800">
                                             <span className="text-[10px] text-slate-500 uppercase block font-bold">Vocab & Structure</span>
                                             <div className="mt-1 font-mono text-xs">
-                                                <span className="text-indigo-300 block">Vocab: <b>{report.communication_summary.average_vocabulary_score ?? 'N/A'}%</b></span>
-                                                <span className="text-slate-300 block mt-0.5">Structure: <b>{report.communication_summary.average_structure_score ?? 'N/A'}%</b></span>
+                                                <span className="text-indigo-300 block">Vocab: <b>{report.communication_summary.average_vocabulary_score != null ? `${report.communication_summary.average_vocabulary_score}%` : 'N/A'}</b></span>
+                                                <span className="text-slate-300 block mt-0.5">Structure: <b>{report.communication_summary.average_structure_score != null ? `${report.communication_summary.average_structure_score}%` : 'N/A'}</b></span>
                                             </div>
                                         </div>
                                     </div>

@@ -492,6 +492,15 @@ def get_interview_history(db: Session = Depends(get_db), current_user: User = De
 
     result = []
     for i in interviews:
+        comm_summary = None
+        if i.feedback_json:
+            try:
+                parsed_fb = json.loads(i.feedback_json)
+                if isinstance(parsed_fb, dict):
+                    comm_summary = parsed_fb.get("communication_summary")
+            except Exception:
+                comm_summary = None
+
         result.append({
             "id": i.id,
             "target_role": i.target_role,
@@ -502,6 +511,7 @@ def get_interview_history(db: Session = Depends(get_db), current_user: User = De
             "technical_score": i.technical_score,
             "communication_score": i.communication_score,
             "status": i.status,
-            "created_at": i.created_at.isoformat() if i.created_at else None
+            "created_at": i.created_at.isoformat() if i.created_at else None,
+            "communication_summary": comm_summary
         })
     return result

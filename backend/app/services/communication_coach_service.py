@@ -2,7 +2,7 @@ import re
 import json
 import math
 from datetime import datetime, timezone
-from typing import Optional, List
+from typing import Optional, List, Union
 from sqlalchemy.orm import Session
 from app import models
 from app.ai_service.gemini_agent import client, model_name
@@ -50,6 +50,30 @@ class CommunicationCoachService:
         }
 
     @staticmethod
+    def classify_speaking_pace(wpm: Optional[Union[int, float]]) -> Optional[str]:
+        """
+        Classifies speaking pace based on Words Per Minute (WPM):
+        - wpm < 110: Slow
+        - wpm > 185: Fast
+        - 110 <= wpm <= 185: Good
+        Returns None if wpm is None, non-positive, or invalid.
+        """
+        if wpm is None or isinstance(wpm, bool):
+            return None
+        try:
+            val = float(wpm)
+            if math.isnan(val) or math.isinf(val) or val <= 0:
+                return None
+            if val < 110:
+                return "Slow"
+            elif val > 185:
+                return "Fast"
+            else:
+                return "Good"
+        except (ValueError, TypeError):
+            return None
+
+    @staticmethod
     def analyze_speaking_pace(transcript: str, duration_seconds: Optional[float] = None) -> dict:
         """
         Calculates Words Per Minute (WPM) and classifies speaking pace.
@@ -75,12 +99,7 @@ class CommunicationCoachService:
 
         if is_valid_duration and word_count > 0:
             wpm = round((word_count / clean_duration) * 60)
-            if wpm < 110:
-                pace = "Slow"
-            elif wpm > 185:
-                pace = "Fast"
-            else:
-                pace = "Good"
+            pace = CommunicationCoachService.classify_speaking_pace(wpm)
 
             # Do not fabricate pause counts without acoustic audio timestamps
             return {
@@ -356,12 +375,7 @@ class CommunicationCoachService:
 
         if has_voice_data:
             avg_wpm = round(sum(valid_wpms) / len(valid_wpms))
-            if avg_wpm < 110:
-                overall_pace = "Slow"
-            elif avg_wpm > 185:
-                overall_pace = "Fast"
-            else:
-                overall_pace = "Good"
+            overall_pace = CommunicationCoachService.classify_speaking_pace(avg_wpm)
         else:
             avg_wpm = None
             overall_pace = None

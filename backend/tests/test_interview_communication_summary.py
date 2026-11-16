@@ -365,7 +365,7 @@ class TestInterviewCommunicationSummary(unittest.TestCase):
             ai_coach_recommendation = None
 
         with patch.object(self.db, "query") as mock_query:
-            mock_query.return_value.filter.return_value.all.return_value = [MockRecord()]
+            mock_query.return_value.filter.return_value.order_by.return_value.all.return_value = [MockRecord()]
             none_summary = CommunicationCoachService.aggregate_interview_communication(
                 db=self.db,
                 interview_id=self.interview.id,
@@ -446,11 +446,210 @@ class TestInterviewCommunicationSummary(unittest.TestCase):
         self.assertIn("communication_summary", report_data)
         self.assertEqual(report_data["communication_summary"], comm_summary)
 
-        # Verify GET /api/interview/history
+    def test_classify_speaking_pace_thresholds(self):
+        """Tests the shared classify_speaking_pace helper across all thresholds and invalid inputs."""
+        # Slow: wpm < 110
+        self.assertEqual(CommunicationCoachService.classify_speaking_pace(109), "Slow")
+        self.assertEqual(CommunicationCoachService.classify_speaking_pace(80), "Slow")
+        self.assertEqual(CommunicationCoachService.classify_speaking_pace(1), "Slow")
+
+        # Good: 110 <= wpm <= 185
+        self.assertEqual(CommunicationCoachService.classify_speaking_pace(110), "Good")
+        self.assertEqual(CommunicationCoachService.classify_speaking_pace(145), "Good")
+        self.assertEqual(CommunicationCoachService.classify_speaking_pace(185), "Good")
+
+        # Fast: wpm > 185
+        self.assertEqual(CommunicationCoachService.classify_speaking_pace(186), "Fast")
+        self.assertEqual(CommunicationCoachService.classify_speaking_pace(220), "Fast")
+
+        # Invalid / non-positive inputs
+        self.assertIsNone(CommunicationCoachService.classify_speaking_pace(None))
+        self.assertIsNone(CommunicationCoachService.classify_speaking_pace(0))
+        self.assertIsNone(CommunicationCoachService.classify_speaking_pace(-50))
+        self.assertIsNone(CommunicationCoachService.classify_speaking_pace("fast"))
+        self.assertIsNone(CommunicationCoachService.classify_speaking_pace(True))
+        self.assertIsNone(CommunicationCoachService.classify_speaking_pace(False))
+        self.assertIsNone(CommunicationCoachService.classify_speaking_pace(float("nan")))
+        self.assertIsNone(CommunicationCoachService.classify_speaking_pace(float("inf")))
+
+        # Verify analyze_speaking_pace yields identical results
+        words_50 = "word " * 50
+        # 50 words in 30s -> 100 WPM (< 110) -> Slow
+        pace_slow = CommunicationCoachService.analyze_speaking_pace(words_50, duration_seconds=30.0)
+        self.assertEqual(pace_slow["pace"], "Slow")
+        self.assertEqual(pace_slow["wpm"], 100)
+
+        # 50 words in 20s -> 150 WPM (110-185) -> Good
+        pace_good = CommunicationCoachService.analyze_speaking_pace(words_50, duration_seconds=20.0)
+        self.assertEqual(pace_good["pace"], "Good")
+        self.assertEqual(pace_good["wpm"], 150)
+
+        # 50 words in 10s -> 300 WPM (> 185) -> Fast
+        pace_fast = CommunicationCoachService.analyze_speaking_pace(words_50, duration_seconds=10.0)
+        self.assertEqual(pace_fast["pace"], "Fast")
+        self.assertEqual(pace_fast["wpm"], 300)
+
+    def test_history_response_contains_saved_communication_summary(self):
+        """GET /interview/history returns the saved communication_summary for completed interviews."""
+        saved_summary = {
+            "total_answers_analyzed": 2,
+            "has_voice_data": True,
+            "average_communication_score": 85,
+            "average_wpm": 140,
+            "overall_speaking_pace": "Good",
+            "total_filler_words": 3
+        }
+        feedback_payload = {
+            "overall_score": 85,
+            "technical_score": 90,
+            "communication_summary": saved_summary
+        }
+
+        completed_interview = models.Interview(
+            user_id=self.user.id,
+            target_role="Full Stack Developer",
+            interview_type="technical",
+            starting_difficulty="MEDIUM",
+            current_difficulty="MEDIUM",
+            overall_score=85,
+            technical_score=90,
+            communication_score=85,
+            status="COMPLETED",
+            feedback_json=json.dumps(feedback_payload)
+        )
+        self.db.add(completed_interview)
+        self.db.commit()
+        self.db.refresh(completed_interview)
+
+        resp = self.client.get("/api/interview/history", headers=self.headers)
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+
+        matching = next((item for item in data if item["id"] == completed_interview.id), None)
+        self.assertIsNotNone(matching)
+        self.assertEqual(matching["communication_summary"], saved_summary)
+        self.assertEqual(matching["communication_score"], 85)
+
+    def test_older_history_and_report_records_without_communication_summary(self):
+        """Older reports without communication_summary, null feedback_json, or malformed JSON return None gracefully."""
+        # 1. Older report without communication_summary field
+        older_feedback = {
+            "overall_score": 75,
+            "technical_score": 80,
+            "strengths": ["Solid fundamentals"]
+        }
+        old_interview = models.Interview(
+            user_id=self.user.id,
+            target_role="Systems Engineer",
+            interview_type="technical",
+            status="COMPLETED",
+            overall_score=75,
+            feedback_json=json.dumps(older_feedback)
+        )
+        # 2. Interview with None feedback_json
+        null_fb_interview = models.Interview(
+            user_id=self.user.id,
+            target_role="DevOps Engineer",
+            interview_type="technical",
+            status="IN_PROGRESS",
+            feedback_json=None
+        )
+        # 3. Interview with malformed feedback_json
+        malformed_fb_interview = models.Interview(
+            user_id=self.user.id,
+            target_role="QA Engineer",
+            interview_type="technical",
+            status="COMPLETED",
+            feedback_json="MALFORMED_JSON{{"
+        )
+
+        self.db.add_all([old_interview, null_fb_interview, malformed_fb_interview])
+        self.db.commit()
+        self.db.refresh(old_interview)
+        self.db.refresh(null_fb_interview)
+        self.db.refresh(malformed_fb_interview)
+
+        # GET /api/interview/history
+        resp = self.client.get("/api/interview/history", headers=self.headers)
+        self.assertEqual(resp.status_code, 200)
+        items = resp.json()
+
+        old_item = next(i for i in items if i["id"] == old_interview.id)
+        self.assertIsNone(old_item["communication_summary"])
+
+        null_item = next(i for i in items if i["id"] == null_fb_interview.id)
+        self.assertIsNone(null_item["communication_summary"])
+
+        malformed_item = next(i for i in items if i["id"] == malformed_fb_interview.id)
+        self.assertIsNone(malformed_item["communication_summary"])
+
+        # GET /api/interview/{id}/report for older report returns saved payload without error
+        report_resp = self.client.get(f"/api/interview/{old_interview.id}/report", headers=self.headers)
+        self.assertEqual(report_resp.status_code, 200)
+        report_data = report_resp.json()
+        self.assertEqual(report_data.get("overall_score"), 75)
+        self.assertNotIn("communication_summary", report_data)
+
+    def test_valid_communication_score_of_zero(self):
+        """A valid communication score of 0 is accurately aggregated and preserved in history and report."""
+        zero_interview = models.Interview(
+            user_id=self.user.id,
+            target_role="Junior Developer",
+            interview_type="technical",
+            communication_score=0,
+            status="COMPLETED"
+        )
+        self.db.add(zero_interview)
+        self.db.commit()
+        self.db.refresh(zero_interview)
+
+        rec = models.CommunicationAnalysis(
+            user_id=self.user.id,
+            interview_id=zero_interview.id,
+            communication_score=0,
+            clarity_score=0,
+            grammar_score=0,
+            vocabulary_score=0,
+            structure_score=0,
+            words_per_minute=120,
+            speaking_pace="Good",
+            filler_word_count=0,
+            filler_words_json="{}",
+            grammar_improvements_json="[]",
+            ai_coach_recommendation="Keep practicing."
+        )
+        self.db.add(rec)
+        self.db.commit()
+
+        summary = CommunicationCoachService.aggregate_interview_communication(
+            db=self.db,
+            interview_id=zero_interview.id,
+            user_id=self.user.id
+        )
+
+        self.assertIsNotNone(summary)
+        # 0 must be preserved as 0, not converted to None or falsy
+        self.assertEqual(summary["average_communication_score"], 0)
+        self.assertEqual(summary["average_clarity_score"], 0)
+        self.assertEqual(summary["average_grammar_score"], 0)
+        self.assertEqual(summary["average_vocabulary_score"], 0)
+        self.assertEqual(summary["average_structure_score"], 0)
+        self.assertEqual(summary["total_filler_words"], 0)
+
+        # Test history preservation of 0
+        zero_feedback = {
+            "overall_score": 50,
+            "technical_score": 70,
+            "communication_summary": summary
+        }
+        zero_interview.feedback_json = json.dumps(zero_feedback)
+        self.db.commit()
+
         hist_resp = self.client.get("/api/interview/history", headers=self.headers)
         self.assertEqual(hist_resp.status_code, 200)
-        history = hist_resp.json()
-        self.assertTrue(any(item["id"] == self.interview.id for item in history))
+        matching = next(i for i in hist_resp.json() if i["id"] == zero_interview.id)
+        self.assertEqual(matching["communication_score"], 0)
+        self.assertEqual(matching["communication_summary"]["average_communication_score"], 0)
 
 
 if __name__ == "__main__":
