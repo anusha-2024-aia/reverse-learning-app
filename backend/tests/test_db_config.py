@@ -26,6 +26,7 @@ def init_test_db():
     from app.models import Base
     from app.main import app
     from app.database import get_db
+    test_engine.dispose()
     Base.metadata.create_all(bind=test_engine)
     app.dependency_overrides[get_db] = get_test_db
 
@@ -37,6 +38,10 @@ def get_test_db():
         db.close()
 
 def cleanup_test_db():
+    from app.main import app
+    from app.database import get_db
+    app.dependency_overrides.pop(get_db, None)
+    test_engine.dispose()
     if os.path.exists(TEST_DB_PATH):
         try:
             os.remove(TEST_DB_PATH)
