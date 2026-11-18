@@ -48,22 +48,37 @@ export const AuthProvider = ({ children }) => {
       console.error("Login error:", error);
       let errorMessage = 'An error occurred during login';
       if (error.response?.data?.detail) {
-        errorMessage = typeof error.response.data.detail === 'string' 
-          ? error.response.data.detail 
+        errorMessage = typeof error.response.data.detail === 'string'
+          ? error.response.data.detail
           : JSON.stringify(error.response.data.detail);
       }
       return { success: false, error: errorMessage };
     }
   };
 
+  const demoLogin = async () => {
+    try {
+      const response = await api.post('/auth/demo-login');
+      const newToken = response.data.access_token;
+      sessionStorage.setItem('token', newToken);
+      localStorage.setItem('token', newToken);
+      setToken(newToken);
+      setIsLoggedIn(true);
+      return { success: true, user: response.data.user };
+    } catch (error) {
+      console.error("Demo login error:", error);
+      return { success: false, error: error.response?.data?.detail || 'Demo login failed' };
+    }
+  };
+
   const signup = async (name, email, password, confirmPassword) => {
     try {
-      await api.post('/auth/register', { 
+      await api.post('/auth/register', {
         name: name,
         username: email ? email.split('@')[0] : undefined,
-        email: email, 
+        email: email,
         password: password,
-        confirm_password: confirmPassword 
+        confirm_password: confirmPassword
       });
       // Do not auto login.
       return { success: true };
@@ -71,8 +86,8 @@ export const AuthProvider = ({ children }) => {
       console.error("Signup error:", error);
       let errorMessage = 'An error occurred during signup';
       if (error.response?.data?.detail) {
-        errorMessage = typeof error.response.data.detail === 'string' 
-          ? error.response.data.detail 
+        errorMessage = typeof error.response.data.detail === 'string'
+          ? error.response.data.detail
           : JSON.stringify(error.response.data.detail);
       }
       return { success: false, error: errorMessage };
@@ -88,7 +103,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ token, user, isLoggedIn, loading, login, signup, logout }}>
+    <AuthContext.Provider value={{ token, user, isLoggedIn, loading, login, demoLogin, signup, logout }}>
       {children}
     </AuthContext.Provider>
   );

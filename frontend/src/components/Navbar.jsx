@@ -1,12 +1,23 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { BookOpen, Home, Layers, History, BarChart2, Award, Mic, LogOut, Map, RotateCcw, FileText, MessageSquare } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 
 const Navbar = () => {
     const { isLoggedIn, logout } = React.useContext(AuthContext);
-    
+    const location = useLocation();
+
     if (!isLoggedIn) return null;
+
+    // Yield to modern Google Stitch sidebar layout on core pages
+    const stitchRoutes = [
+        '/', '/study', '/study-room', '/knowledge-gaps', '/resume',
+        '/resume-intelligence', '/revision', '/interview', '/mock-interview',
+        '/analytics', '/insights', '/profile', '/settings'
+    ];
+    if (stitchRoutes.includes(location.pathname)) {
+        return null;
+    }
 
     return (
         <header className="sticky top-0 z-50 bg-slate-900/80 backdrop-blur-md border-b border-white/10 p-4">
@@ -54,7 +65,7 @@ const Navbar = () => {
                     <NavLink to="/evaluations" className={({ isActive }) => `flex items-center gap-2 text-sm font-medium transition-colors ${isActive ? 'text-indigo-400' : 'text-slate-400 hover:text-slate-200'}`}>
                         <Award className="w-4 h-4" /> Evaluations
                     </NavLink>
-                    <button 
+                    <button
                         onClick={logout}
                         className="ml-4 flex items-center gap-2 text-sm font-medium text-red-400 hover:text-red-300 transition-colors"
                     >

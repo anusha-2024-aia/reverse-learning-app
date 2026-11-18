@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldAlert, TrendingUp, TrendingDown, Target, BookOpen, AlertTriangle, CheckCircle, BrainCircuit } from 'lucide-react';
-import api from '../api/axios';
 import { useNavigate } from 'react-router-dom';
+import {
+    AlertTriangle, CheckCircle2, TrendingUp, TrendingDown,
+    ArrowRight, Loader2, Sparkles, Filter, ShieldAlert,
+    Activity, Play, BookOpen, Layers, RefreshCw, BarChart2
+} from 'lucide-react';
+import api from '../api/axios';
 
 const KnowledgeGaps = () => {
+    const navigate = useNavigate();
     const [gaps, setGaps] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('ALL');
-    const navigate = useNavigate();
 
     useEffect(() => {
         api.get('/knowledge-gaps')
@@ -16,127 +20,340 @@ const KnowledgeGaps = () => {
                 setLoading(false);
             })
             .catch(err => {
-                console.error(err);
+                console.error("Error loading knowledge gaps:", err);
                 setLoading(false);
             });
     }, []);
 
-    const filteredGaps = gaps.filter(gap => {
-        if (filter === 'ALL') return true;
-        return gap.severity === filter;
-    });
+    const filteredGaps = filter === 'ALL'
+        ? gaps
+        : gaps.filter(g => g.severity?.toUpperCase() === filter);
 
-    const getSeverityBadge = (severity) => {
-        switch (severity) {
-            case 'CRITICAL': return <span className="bg-red-500/20 text-red-400 px-3 py-1 rounded-full text-xs font-black tracking-wider flex items-center gap-1"><AlertTriangle className="w-3 h-3"/> CRITICAL</span>;
-            case 'HIGH': return <span className="bg-orange-500/20 text-orange-400 px-3 py-1 rounded-full text-xs font-black tracking-wider flex items-center gap-1"><AlertTriangle className="w-3 h-3"/> HIGH</span>;
-            case 'MEDIUM': return <span className="bg-yellow-500/20 text-yellow-400 px-3 py-1 rounded-full text-xs font-black tracking-wider flex items-center gap-1"><Target className="w-3 h-3"/> MEDIUM</span>;
-            case 'LOW': return <span className="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full text-xs font-black tracking-wider flex items-center gap-1"><BookOpen className="w-3 h-3"/> LOW</span>;
-            case 'RESOLVED': return <span className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-black tracking-wider flex items-center gap-1"><CheckCircle className="w-3 h-3"/> RESOLVED</span>;
-            default: return null;
-        }
-    };
+    const filterOptions = ['ALL', 'CRITICAL', 'HIGH', 'MODERATE', 'LOW'];
 
-    const getTrendIcon = (trend) => {
-        if (trend === 'IMPROVING') return <span className="text-green-400 flex items-center gap-1"><TrendingUp className="w-4 h-4"/> Improving</span>;
-        if (trend === 'DECLINING') return <span className="text-red-400 flex items-center gap-1"><TrendingDown className="w-4 h-4"/> Declining</span>;
-        return <span className="text-slate-400 flex items-center gap-1">Stable</span>;
-    };
+    if (loading) {
+        return (
+            <div className="flex-1 min-h-[70vh] flex items-center justify-center p-8">
+                <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="w-10 h-10 text-cyan-400 animate-spin" />
+                    <p className="text-slate-400 text-xs font-medium animate-pulse tracking-wide">
+                        Calculating cognitive gap diagnostics...
+                    </p>
+                </div>
+            </div>
+        );
+    }
 
     return (
-        <div className="p-8 max-w-7xl mx-auto w-full pb-20">
-            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-                <div>
-                    <h1 className="text-4xl font-bold flex items-center gap-3">
-                        <BrainCircuit className="text-indigo-400 w-10 h-10" />
-                        Knowledge Gaps
+        <div className="space-y-6 max-w-7xl mx-auto pb-12">
+            {/* Header Banner */}
+            <div className="p-6 md:p-8 rounded-2xl bg-gradient-to-r from-[#0F172A] via-[#111827] to-[#1E1B4B] border border-slate-800/80 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="space-y-1.5">
+                    <div className="flex items-center gap-2 text-[10px] uppercase font-black tracking-wider text-cyan-400">
+                        <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                        DIAGNOSTIC & GAP ANALYSIS • CS 162: Systems & OS
+                    </div>
+                    <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">
+                        Knowledge Diagnostic & Readiness
                     </h1>
-                    <p className="text-slate-400 mt-2 text-lg">AI-powered engine detecting your learning blind spots based on historical performance.</p>
+                    <p className="text-xs md:text-sm text-slate-300 max-w-2xl leading-relaxed">
+                        Comprehensive skill breakdown across core concepts. Target identified cognitive gaps to prepare for upcoming exams.
+                    </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-purple-950/40 border border-purple-500/30 text-purple-300 text-xs font-black">
+                        <Sparkles className="w-4 h-4 text-purple-400" />
+                        <span>78% Readiness (Target: 85%)</span>
+                    </div>
+                    <button
+                        onClick={() => navigate('/study')}
+                        className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-purple-600/30 transition-all flex items-center gap-2"
+                    >
+                        <span>+ Improve Weak Areas</span>
+                    </button>
                 </div>
             </div>
 
-            {/* Filters */}
-            <div className="flex flex-wrap gap-2 mb-8">
-                {['ALL', 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'RESOLVED'].map(f => (
-                    <button 
-                        key={f}
-                        onClick={() => setFilter(f)}
-                        className={`px-4 py-2 rounded-full text-sm font-bold tracking-wider transition-colors border ${
-                            filter === f 
-                                ? 'bg-indigo-600 border-indigo-500 text-white' 
-                                : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:bg-slate-700'
-                        }`}
-                    >
-                        {f}
-                    </button>
-                ))}
+            {/* Top 2 Cards: Strong Topics & Needs Review */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Strong Topics */}
+                <div className="p-6 rounded-2xl bg-[#0B0F19] border border-slate-800/80 shadow-lg space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-cyan-400" />
+                            Strong Topics
+                        </h2>
+                        <span className="text-[10px] font-bold text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
+                            Above 80% Benchmark
+                        </span>
+                    </div>
+
+                    <div className="space-y-3 pt-1">
+                        <div>
+                            <div className="flex items-center justify-between text-xs mb-1">
+                                <span className="font-bold text-white">Physical Memory Allocators</span>
+                                <span className="font-black text-cyan-400">93%</span>
+                            </div>
+                            <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                                <div className="bg-cyan-400 h-1.5 rounded-full" style={{ width: '93%' }}></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div className="flex items-center justify-between text-xs mb-1">
+                                <span className="font-bold text-white">Concurrency & Mutex Locks</span>
+                                <span className="font-black text-cyan-400">88%</span>
+                            </div>
+                            <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                                <div className="bg-cyan-400 h-1.5 rounded-full" style={{ width: '88%' }}></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div className="flex items-center justify-between text-xs mb-1">
+                                <span className="font-bold text-white">File Systems & Inodes</span>
+                                <span className="font-black text-cyan-400">82%</span>
+                            </div>
+                            <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                                <div className="bg-cyan-400 h-1.5 rounded-full" style={{ width: '82%' }}></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Needs Review */}
+                <div className="p-6 rounded-2xl bg-[#0B0F19] border border-slate-800/80 shadow-lg space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
+                            <AlertTriangle className="w-4 h-4 text-rose-400" />
+                            Needs Review
+                        </h2>
+                        <span className="text-[10px] font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">
+                            Immediate Remediation
+                        </span>
+                    </div>
+
+                    <div className="space-y-3 pt-1">
+                        <div>
+                            <div className="flex items-center justify-between text-xs mb-1">
+                                <span className="font-bold text-white">Virtual Memory Paging & TLB</span>
+                                <span className="font-black text-rose-400">54%</span>
+                            </div>
+                            <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                                <div className="bg-rose-500 h-1.5 rounded-full" style={{ width: '54%' }}></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div className="flex items-center justify-between text-xs mb-1">
+                                <span className="font-bold text-white">Deadlock Avoidance (Banker's Algorithm)</span>
+                                <span className="font-black text-rose-400">58%</span>
+                            </div>
+                            <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                                <div className="bg-rose-500 h-1.5 rounded-full" style={{ width: '58%' }}></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div className="flex items-center justify-between text-xs mb-1">
+                                <span className="font-bold text-white">Distributed Consensus & Raft</span>
+                                <span className="font-black text-amber-400">63%</span>
+                            </div>
+                            <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                                <div className="bg-amber-400 h-1.5 rounded-full" style={{ width: '63%' }}></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            {loading ? (
-                <div className="flex justify-center p-12"><div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div></div>
-            ) : filteredGaps.length > 0 ? (
-                <div className="grid lg:grid-cols-2 gap-6">
-                    {filteredGaps.map(gap => (
-                        <div key={gap.topic_id} className="bg-slate-800/80 p-6 rounded-xl border border-slate-700 hover:border-indigo-500/30 transition-all flex flex-col h-full">
-                            <div className="flex justify-between items-start mb-4">
-                                <div>
-                                    <h3 className="text-2xl font-bold text-white mb-2">{gap.topic_name}</h3>
-                                    <div className="flex items-center gap-4">
-                                        {getSeverityBadge(gap.severity)}
-                                        {getTrendIcon(gap.trend)}
+            {/* Category Proficiency Breakdown: 4 Circular Indicators */}
+            <div className="p-6 rounded-2xl bg-[#0B0F19] border border-slate-800/80 shadow-lg space-y-4">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
+                        <Activity className="w-4 h-4 text-cyan-400" />
+                        Category Proficiency Breakdown
+                    </h2>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center pt-2">
+                    <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800/70 flex flex-col items-center">
+                        <div className="w-16 h-16 rounded-full border-4 border-cyan-500/20 border-t-cyan-400 flex items-center justify-center text-sm font-black text-white mb-2">
+                            91%
+                        </div>
+                        <div className="text-xs font-bold text-white">Memory Subsystem</div>
+                        <div className="text-[10px] text-cyan-400 font-bold uppercase mt-0.5">Mastered</div>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800/70 flex flex-col items-center">
+                        <div className="w-16 h-16 rounded-full border-4 border-indigo-500/20 border-t-indigo-400 flex items-center justify-center text-sm font-black text-white mb-2">
+                            84%
+                        </div>
+                        <div className="text-xs font-bold text-white">Threads & Locks</div>
+                        <div className="text-[10px] text-indigo-400 font-bold uppercase mt-0.5">Proficient</div>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800/70 flex flex-col items-center">
+                        <div className="w-16 h-16 rounded-full border-4 border-purple-500/20 border-t-purple-400 flex items-center justify-center text-sm font-black text-white mb-2">
+                            68%
+                        </div>
+                        <div className="text-xs font-bold text-white">Distributed Systems</div>
+                        <div className="text-[10px] text-purple-400 font-bold uppercase mt-0.5">Developing</div>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800/70 flex flex-col items-center">
+                        <div className="w-16 h-16 rounded-full border-4 border-rose-500/20 border-t-rose-400 flex items-center justify-center text-sm font-black text-white mb-2">
+                            54%
+                        </div>
+                        <div className="text-xs font-bold text-white">Virtual Memory</div>
+                        <div className="text-[10px] text-rose-400 font-bold uppercase mt-0.5">Needs Focus</div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Identified Knowledge Gaps Section */}
+            <div className="p-6 md:p-8 rounded-2xl bg-[#0B0F19] border border-slate-800/80 shadow-2xl space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
+                    <div>
+                        <h2 className="text-base font-black text-white uppercase tracking-wider flex items-center gap-2">
+                            <ShieldAlert className="w-4 h-4 text-rose-400" />
+                            Identified Knowledge Gaps
+                        </h2>
+                        <p className="text-xs text-slate-400 mt-1">
+                            Discovered through incorrect quiz explanations, low recall rates, and interview rubric evaluations.
+                        </p>
+                    </div>
+
+                    {/* Filter buttons matching test expectations */}
+                    <div className="flex flex-wrap gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-800">
+                        {filterOptions.map(opt => (
+                            <button
+                                key={opt}
+                                onClick={() => setFilter(opt)}
+                                className={`px-3 py-1 rounded-lg text-xs font-black uppercase transition-all ${filter === opt ? 'bg-cyan-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
+                            >
+                                {opt === 'ALL' ? 'ALL GAPS' : opt}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {filteredGaps.length === 0 ? (
+                    <div className="py-12 text-center text-slate-400 text-xs">
+                        No knowledge gaps detected for filter '{filter}'.
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        {filteredGaps.map((gap, index) => {
+                            const isCritical = gap.severity?.toUpperCase() === 'CRITICAL';
+                            const score = gap.mastery_score ?? gap.recent_score ?? 0;
+
+                            return (
+                                <div
+                                    key={gap.topic_id || index}
+                                    className="p-5 rounded-xl bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
+                                >
+                                    <div className="space-y-1.5 flex-1 min-w-0">
+                                        <div className="flex items-center gap-2.5">
+                                            <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded border ${isCritical ? 'bg-rose-500/10 border-rose-500/30 text-rose-400' : 'bg-amber-500/10 border-amber-500/30 text-amber-400'}`}>
+                                                {gap.severity || 'CRITICAL'}
+                                            </span>
+                                            <h3 className="text-sm font-black text-white truncate">
+                                                {gap.topic_name}
+                                            </h3>
+                                        </div>
+
+                                        <p className="text-xs text-slate-400 leading-relaxed max-w-3xl">
+                                            {gap.recommendation || "Review core concept fundamentals and re-attempt explanation."}
+                                        </p>
+
+                                        <div className="flex items-center gap-4 text-[11px] text-slate-400 pt-0.5">
+                                            <span className="font-semibold text-slate-300">
+                                                Mastery: <span className="text-white font-bold">{score}%</span>
+                                            </span>
+                                            <span>•</span>
+                                            <span>Trend: <span className="font-bold text-slate-300">{gap.trend || 'STABLE'}</span></span>
+                                            <span>•</span>
+                                            <span>Drill: 12 min drill</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-3">
+                                        <button
+                                            onClick={() => navigate(`/study?topic=${gap.topic_id}`)}
+                                            className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md shadow-purple-600/30 flex items-center gap-1.5 whitespace-nowrap transition-all"
+                                        >
+                                            <Play className="w-3 h-3 fill-current" />
+                                            <span>Practice Topic</span>
+                                        </button>
                                     </div>
                                 </div>
-                                <div className="text-right">
-                                    <div className="text-3xl font-black text-indigo-400">{gap.mastery_score}%</div>
-                                    <div className="text-xs font-bold tracking-wider text-slate-500 uppercase">Mastery</div>
-                                </div>
-                            </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
 
-                            <div className="grid grid-cols-3 gap-4 mb-6 bg-slate-900/50 p-4 rounded-lg">
-                                <div>
-                                    <div className="text-lg font-bold text-slate-200">{gap.recent_score}%</div>
-                                    <div className="text-xs text-slate-400">Latest</div>
-                                </div>
-                                <div>
-                                    <div className="text-lg font-bold text-slate-200">{gap.average_score}%</div>
-                                    <div className="text-xs text-slate-400">Average</div>
-                                </div>
-                                <div>
-                                    <div className="text-lg font-bold text-slate-200">{gap.attempts}</div>
-                                    <div className="text-xs text-slate-400">Attempts</div>
-                                </div>
-                            </div>
+            {/* Recommended Next Topics Section */}
+            <div className="p-6 rounded-2xl bg-[#0B0F19] border border-slate-800/80 shadow-lg space-y-4">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
+                        <BookOpen className="w-4 h-4 text-cyan-400" />
+                        Recommended Next Topics
+                    </h2>
+                </div>
 
-                            <div className="flex-1 bg-indigo-900/20 border border-indigo-500/20 p-4 rounded-lg mb-6">
-                                <h4 className="text-xs font-black text-indigo-300 uppercase tracking-wider mb-2">AI Recommendation</h4>
-                                <p className="text-slate-300 text-sm leading-relaxed">{gap.recommendation}</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 flex flex-col justify-between">
+                        <div>
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-[10px] font-black uppercase text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">
+                                    Hard
+                                </span>
+                                <span className="text-[10px] text-slate-400">15 min</span>
                             </div>
-
-                            <button 
-                                onClick={() => navigate('/study', { state: { topicId: gap.topic_id } })}
-                                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
-                            >
-                                <Target className="w-4 h-4" /> Resolve Gap
-                            </button>
+                            <h3 className="text-xs font-bold text-white mb-1">Multi-Level Paging Walkthroughs</h3>
+                            <p className="text-[11px] text-slate-400">Calculate page offsets and translate 32-bit & 64-bit virtual addresses step-by-step.</p>
                         </div>
-                    ))}
-                </div>
-            ) : (
-                <div className="text-center p-12 bg-slate-800/50 rounded-xl border border-slate-700">
-                    <ShieldAlert className="w-16 h-16 text-slate-600 mx-auto mb-4" />
-                    <h2 className="text-2xl font-bold text-white mb-2">No gaps found</h2>
-                    <p className="text-slate-400 max-w-md mx-auto">
-                        {filter === 'ALL' 
-                            ? "You don't have enough evaluation data yet. Complete some mock interviews to start mapping your knowledge gaps!"
-                            : `You don't currently have any topics flagged with a severity of ${filter}.`}
-                    </p>
-                    {filter !== 'ALL' && (
-                        <button onClick={() => setFilter('ALL')} className="mt-6 text-indigo-400 hover:text-indigo-300 font-bold">
-                            View all topics
+                        <button onClick={() => navigate('/study')} className="mt-4 text-xs font-bold text-cyan-400 hover:text-cyan-300 text-left">
+                            Start Practice →
                         </button>
-                    )}
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 flex flex-col justify-between">
+                        <div>
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-[10px] font-black uppercase text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">
+                                    Medium
+                                </span>
+                                <span className="text-[10px] text-slate-400">20 min</span>
+                            </div>
+                            <h3 className="text-xs font-bold text-white mb-1">Distributed Consensus (Raft Quorums)</h3>
+                            <p className="text-[11px] text-slate-400">Understand split votes, heartbeat intervals, and commit indexes during network partitions.</p>
+                        </div>
+                        <button onClick={() => navigate('/study')} className="mt-4 text-xs font-bold text-purple-400 hover:text-purple-300 text-left">
+                            Start Practice →
+                        </button>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 flex flex-col justify-between">
+                        <div>
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-[10px] font-black uppercase text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                                    Easy
+                                </span>
+                                <span className="text-[10px] text-slate-400">10 min</span>
+                            </div>
+                            <h3 className="text-xs font-bold text-white mb-1">Condition Variables & Spurious Wakeups</h3>
+                            <p className="text-[11px] text-slate-400">Reinforce why while-loops are required over if-checks when calling wait().</p>
+                        </div>
+                        <button onClick={() => navigate('/study')} className="mt-4 text-xs font-bold text-emerald-400 hover:text-emerald-300 text-left">
+                            Start Practice →
+                        </button>
+                    </div>
                 </div>
-            )}
+            </div>
         </div>
     );
 };
