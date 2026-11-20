@@ -33,6 +33,7 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     fetchUser();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   const login = async (usernameOrEmail, password) => {
@@ -47,10 +48,10 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error("Login error:", error);
       let errorMessage = 'An error occurred during login';
-      if (error.response?.data?.detail) {
-        errorMessage = typeof error.response.data.detail === 'string'
-          ? error.response.data.detail
-          : JSON.stringify(error.response.data.detail);
+      const data = error.response?.data;
+      if (data?.message || data?.detail) {
+        const raw = data.message || data.detail;
+        errorMessage = typeof raw === 'string' ? raw : JSON.stringify(raw);
       }
       return { success: false, error: errorMessage };
     }
@@ -67,28 +68,31 @@ export const AuthProvider = ({ children }) => {
       return { success: true, user: response.data.user };
     } catch (error) {
       console.error("Demo login error:", error);
-      return { success: false, error: error.response?.data?.detail || 'Demo login failed' };
+      const data = error.response?.data;
+      return { success: false, error: data?.message || data?.detail || 'Demo login failed' };
     }
   };
 
-  const signup = async (name, email, password, confirmPassword) => {
+  const signup = async (name, email, password, confirmPassword, university, focusTrack) => {
     try {
       await api.post('/auth/register', {
         name: name,
         username: email ? email.split('@')[0] : undefined,
         email: email,
         password: password,
-        confirm_password: confirmPassword
+        confirm_password: confirmPassword,
+        university: university,
+        target_role: focusTrack
       });
       // Do not auto login.
       return { success: true };
     } catch (error) {
       console.error("Signup error:", error);
       let errorMessage = 'An error occurred during signup';
-      if (error.response?.data?.detail) {
-        errorMessage = typeof error.response.data.detail === 'string'
-          ? error.response.data.detail
-          : JSON.stringify(error.response.data.detail);
+      const data = error.response?.data;
+      if (data?.message || data?.detail) {
+        const raw = data.message || data.detail;
+        errorMessage = typeof raw === 'string' ? raw : JSON.stringify(raw);
       }
       return { success: false, error: errorMessage };
     }

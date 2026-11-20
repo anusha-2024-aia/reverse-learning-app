@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, asc
 import datetime as _dt_module
 from datetime import datetime, timedelta, timezone, date
-from app.models import Evaluation, Topic, Curriculum
+from app.models import Evaluation, Topic, Curriculum, Streak
 import json
 
 def _coerce_to_date(val) -> date:
@@ -21,6 +21,11 @@ def _coerce_to_date(val) -> date:
     raise TypeError(f"Cannot coerce value of type {type(val).__name__} to datetime.date: {val!r}")
 
 def calculate_streak(db: Session, user_id: int):
+    # First check explicit Streak record if present
+    streak_record = db.query(Streak).filter(Streak.user_id == user_id).first()
+    if streak_record and streak_record.current_streak > 0:
+        return streak_record.current_streak
+
     evals = db.query(func.date(Evaluation.created_at)).filter(
         Evaluation.user_id == user_id,
         Evaluation.genuine_predicate()

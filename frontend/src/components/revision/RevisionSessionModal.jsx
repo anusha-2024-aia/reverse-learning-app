@@ -6,7 +6,7 @@ const RevisionSessionModal = ({ topicItem, onClose, onRevisionComplete }) => {
     const [step, setStep] = useState(1); // 1: Briefing, 2: Explanation, 3: Complete Summary
     const [briefing, setBriefing] = useState(null);
     const [explanation, setExplanation] = useState('');
-    const [learningMode, setLearningMode] = useState('technical');
+    const [learningMode] = useState('technical');
     const [isLoading, setIsLoading] = useState(false);
     const [isBriefingLoading, setIsBriefingLoading] = useState(true);
     const [completionData, setCompletionData] = useState(null);

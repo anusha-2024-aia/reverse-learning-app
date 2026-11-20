@@ -1,6 +1,7 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from pydantic import BaseModel, EmailStr, validator
 from app.database import get_db
 from app import models, auth
@@ -19,11 +20,19 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str
     confirm_password: Optional[str] = None
+    university: Optional[str] = None
+    target_role: Optional[str] = None
 
     @validator('name', 'username', pre=True, always=True)
     def sanitize_strings(cls, v):
         if v and isinstance(v, str):
             return v.strip()
+        return v
+
+    @validator('email', pre=True, always=True)
+    def sanitize_email(cls, v):
+        if v and isinstance(v, str):
+            return v.strip().lower()
         return v
 
 class UserLogin(BaseModel):
@@ -47,8 +56,9 @@ class UserResponse(BaseModel):
 
 @router.post("/register", dependencies=[Depends(auth_rate_limit)])
 def register(user: UserCreate, db: Session = Depends(get_db)):
-    display_name = (user.name or user.username or user.email.split('@')[0]).strip()
-    username = (user.username or user.email.split('@')[0]).strip()
+    clean_email = user.email.strip().lower()
+    display_name = (user.name or user.username or clean_email.split('@')[0]).strip()
+    username = (user.username or clean_email.split('@')[0]).strip()
 
     if not display_name:
         raise HTTPException(status_code=400, detail="Name is required.")
@@ -60,9 +70,9 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Passwords do not match.")
 
     # Check for duplicate email
-    db_email = db.query(models.User).filter(models.User.email == user.email.lower()).first()
+    db_email = db.query(models.User).filter(models.User.email == clean_email).first()
     if db_email:
-        raise HTTPException(status_code=400, detail="An account with this email already exists.")
+        raise HTTPException(status_code=400, detail="This email is already registered. Please sign in or use another email.")
 
     # Ensure unique username
     base_username = username
@@ -75,12 +85,17 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     new_user = models.User(
         name=display_name,
         username=username,
-        email=user.email.lower(),
-        password_hash=hashed_password
+        email=clean_email,
+        password_hash=hashed_password,
+        target_role=user.target_role or "Full Stack & Core Software Engineering"
     )
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
+    try:
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+    except (IntegrityError, Exception):
+        db.rollback()
+        raise HTTPException(status_code=400, detail="This email is already registered. Please sign in or use another email.")
 
     access_token = auth.create_access_token(data={"sub": str(new_user.id)})
 

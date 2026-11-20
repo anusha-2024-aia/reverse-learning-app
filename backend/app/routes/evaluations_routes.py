@@ -248,9 +248,9 @@ async def evaluate_user_explanation(evaluation: schemas.EvaluationCreate, db: Se
 
 @router.get("/evaluations/mine")
 def get_my_evaluations(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    evals = db.query(models.Evaluation, models.Topic, models.Curriculum).join(
+    evals = db.query(models.Evaluation, models.Topic, models.Curriculum).outerjoin(
         models.Topic, models.Evaluation.topic_id == models.Topic.id
-    ).join(
+    ).outerjoin(
         models.Curriculum, models.Topic.curriculum_id == models.Curriculum.id
     ).filter(
         models.Evaluation.user_id == current_user.id,
@@ -262,8 +262,8 @@ def get_my_evaluations(db: Session = Depends(get_db), current_user: models.User 
         result.append({
             "id": e.id,
             "topic_id": e.topic_id,
-            "topic_name": t.name,
-            "curriculum_name": c.name,
+            "topic_name": t.name if t else "Unknown Topic",
+            "curriculum_name": c.name if c else (t.category if t and t.category else "General"),
             "overall_score": e.overall_score or e.ai_score,
             "attempt_number": e.attempt_number or 1,
             "created_at": e.created_at.isoformat() if e.created_at else None,

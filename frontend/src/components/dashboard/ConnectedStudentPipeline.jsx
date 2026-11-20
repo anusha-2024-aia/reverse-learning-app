@@ -137,7 +137,6 @@ const ConnectedStudentPipeline = ({ roadmapSummary, revisionSummary, resumeSumma
         {steps.map((step, idx) => {
           const StepIcon = step.icon;
           const isActive = idx === activeStepIdx;
-          const isNext = idx === (activeStepIdx + 1) % steps.length;
 
           return (
             <div key={step.stepNum} className="relative group flex flex-col justify-between">

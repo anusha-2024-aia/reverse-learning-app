@@ -1,33 +1,50 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Sparkles, CheckCircle2, ShieldCheck, ArrowRight, GraduationCap, Lock, Mail, User, School, BookOpen } from 'lucide-react';
+import {
+  Sparkles, CheckCircle2, ShieldCheck, ArrowRight,
+  GraduationCap, Lock, Mail, User, School, BookOpen,
+  Eye, EyeOff, AlertCircle
+} from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 
 const SignupPage = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [university, setUniversity] = useState('University of California, Berkeley');
+  const [university, setUniversity] = useState('');
   const [focusTrack, setFocusTrack] = useState('Distributed Systems & Cloud Infrastructure');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(true);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { signup, demoLogin } = useContext(AuthContext);
 
+  const handleInputChange = (setter) => (e) => {
+    setter(e.target.value);
+    if (error) setError(null);
+    if (success) setSuccess(null);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+    setSuccess(null);
 
-    if (!name.trim()) {
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
+
+    if (!trimmedName) {
       setError("Full Legal Name is required.");
       return;
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email.trim())) {
-      setError("Please enter a valid institutional email address.");
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      setError("Please enter a valid email address (e.g. name@example.com).");
       return;
     }
 
@@ -36,8 +53,8 @@ const SignupPage = () => {
       return;
     }
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters long.");
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters long.");
       return;
     }
 
@@ -53,17 +70,26 @@ const SignupPage = () => {
 
     setIsLoading(true);
 
-    const result = await signup(name.trim(), email.trim(), password, confirmPassword);
+    const result = await signup(trimmedName, trimmedEmail, password, confirmPassword, university.trim(), focusTrack);
     if (result.success) {
-      navigate('/login');
+      setSuccess("Account created successfully! Redirecting to Sign In...");
+      setTimeout(() => {
+        navigate('/login', {
+          state: {
+            registeredEmail: trimmedEmail,
+            message: "Account created successfully! Please sign in with your credentials."
+          }
+        });
+      }, 900);
     } else {
-      setError(result.error);
+      setError(result.error || "An error occurred during signup.");
     }
 
     setIsLoading(false);
   };
 
   const handleDemoSignIn = async () => {
+    setError(null);
     if (demoLogin) {
       const res = await demoLogin();
       if (res.success) {
@@ -77,6 +103,11 @@ const SignupPage = () => {
   const hasMinLength = password.length >= 8;
   const hasUppercase = /[A-Z]/.test(password);
   const hasSpecial = /[0-9!@#$%^&*]/.test(password);
+
+  const isDuplicateEmailError = error && (
+    error.toLowerCase().includes('already registered') ||
+    error.toLowerCase().includes('already exists')
+  );
 
   return (
     <div className="min-h-screen bg-[#080C14] text-slate-100 flex items-center justify-center p-4 md:p-8 selection:bg-cyan-500/30 selection:text-cyan-200">
@@ -102,15 +133,15 @@ const SignupPage = () => {
           {/* Platform Metric Pills */}
           <div className="grid grid-cols-3 gap-3">
             <div className="p-3.5 rounded-2xl bg-[#0B0F19] border border-slate-800">
-              <div className="text-lg md:text-xl font-black text-white font-mono">14.3k</div>
+              <div className="text-lg md:xl font-black text-white font-mono">14.3k</div>
               <div className="text-[10px] text-slate-400 font-semibold uppercase mt-0.5">Active Learners</div>
             </div>
             <div className="p-3.5 rounded-2xl bg-[#0B0F19] border border-slate-800">
-              <div className="text-lg md:text-xl font-black text-cyan-400 font-mono">92.4k</div>
+              <div className="text-lg md:xl font-black text-cyan-400 font-mono">92.4k</div>
               <div className="text-[10px] text-slate-400 font-semibold uppercase mt-0.5">Concept Maps</div>
             </div>
             <div className="p-3.5 rounded-2xl bg-[#0B0F19] border border-slate-800">
-              <div className="text-lg md:text-xl font-black text-purple-400 font-mono">3.8x</div>
+              <div className="text-lg md:xl font-black text-purple-400 font-mono">3.8x</div>
               <div className="text-[10px] text-slate-400 font-semibold uppercase mt-0.5">Retention Lift</div>
             </div>
           </div>
@@ -118,37 +149,37 @@ const SignupPage = () => {
           {/* Feature List */}
           <div className="space-y-3.5 text-xs text-slate-300">
             <div className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0 mt-0.5">
-                <CheckCircle2 className="w-3.5 h-3.5" />
+              <div className="w-5 h-5 rounded-lg bg-cyan-500/10 flex items-center justify-center text-cyan-400 shrink-0 mt-0.5">
+                <ShieldCheck className="w-3.5 h-3.5" />
               </div>
               <div>
-                <span className="font-bold text-white">Automated Root-Cause Misconception Isolation:</span> Pinpoint the exact invariant failure in reasoning before exam and interview day.
+                <span className="font-bold text-white">Automated Root-Cause Misconception Isolation:</span> Pinpoints granular knowledge deficits down to algorithmic invariants before midterms.
               </div>
             </div>
 
             <div className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0 mt-0.5">
+              <div className="w-5 h-5 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400 shrink-0 mt-0.5">
                 <CheckCircle2 className="w-3.5 h-3.5" />
               </div>
               <div>
-                <span className="font-bold text-white">Real-Time Voice AI Mock Interviews with Staff-Rubric:</span> Practice aloud with adaptive follow-ups and acoustic clarity scoring.
+                <span className="font-bold text-white">Real-Time Voice AI Mock Interviews:</span> Practice technical system design rounds against rigorous Staff Engineer rubrics.
               </div>
             </div>
 
             <div className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center shrink-0 mt-0.5">
-                <CheckCircle2 className="w-3.5 h-3.5" />
+              <div className="w-5 h-5 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400 shrink-0 mt-0.5">
+                <GraduationCap className="w-3.5 h-3.5" />
               </div>
               <div>
-                <span className="font-bold text-white">Institutional Syllabus Sync:</span> Pre-populated with your university's CS tracks (UC Berkeley, MIT, CMU, Stanford).
+                <span className="font-bold text-white">Institutional Syllabus Sync:</span> Synchronizes directly with course calendars, exam dates, and live problem sets.
               </div>
             </div>
           </div>
 
-          {/* Student Testimonial Card */}
-          <div className="p-5 rounded-2xl bg-[#0B0F19] border border-slate-800/80 space-y-2">
+          {/* Testimonial Quote */}
+          <div className="p-4 rounded-2xl bg-[#0B0F19]/80 border border-slate-800/80 space-y-2">
             <p className="text-xs text-slate-300 italic leading-relaxed">
-              "Reverse Studio diagnosed my metric breakdown in distributed systems with LSM-Trees. Simulated my L5 interview seamlessly."
+              &quot;Reverse Studio diagnosed my metric breakdown in distributed systems with LSM-Trees. Simulated my L5 interview seamlessly.&quot;
             </p>
             <div className="flex items-center gap-2.5 pt-1">
               <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-cyan-400 to-indigo-500 flex items-center justify-center text-xs font-black text-slate-950">
@@ -156,7 +187,7 @@ const SignupPage = () => {
               </div>
               <div>
                 <div className="text-xs font-bold text-white">Maya Lin</div>
-                <div className="text-[10px] text-cyan-400">UC Berkeley CS '26 • Systems Infrastructure Track</div>
+                <div className="text-[10px] text-cyan-400">UC Berkeley CS &apos;26 • Systems Infrastructure Track</div>
               </div>
             </div>
           </div>
@@ -186,41 +217,69 @@ const SignupPage = () => {
             <span className="text-xs font-bold text-cyan-400 group-hover:translate-x-1 transition-transform">→</span>
           </button>
 
-          {error && (
-            <div className="p-3 bg-rose-950/50 border border-rose-500/50 rounded-xl text-rose-300 text-xs">
-              {error}
+          {/* Success Banner */}
+          {success && (
+            <div className="p-3.5 bg-emerald-950/60 border border-emerald-500/50 rounded-xl text-emerald-300 text-xs flex items-center gap-2.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>{success}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-3.5">
+          {/* Error Banner with Smart Duplicate Email Action Link */}
+          {error && (
+            <div className="p-3.5 bg-rose-950/50 border border-rose-500/50 rounded-xl text-rose-300 text-xs flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                {isDuplicateEmailError ? (
+                  <span>
+                    This email is already registered. Please{' '}
+                    <Link to="/login" className="text-cyan-300 hover:text-cyan-200 font-bold underline">
+                      Sign In
+                    </Link>{' '}
+                    or use another email.
+                  </span>
+                ) : (
+                  <span>{error}</span>
+                )}
+              </div>
+            </div>
+          )}
+
+          <form noValidate onSubmit={handleSubmit} className="space-y-3.5">
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1" htmlFor="name">
                 Full Legal Name
               </label>
-              <input
-                id="name"
-                type="text"
-                required
-                placeholder="Maya Lin"
-                className="w-full bg-[#080C14] border border-slate-700/80 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-medium"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
+              <div className="relative">
+                <input
+                  id="name"
+                  type="text"
+                  required
+                  placeholder="Your Full Name"
+                  className="w-full bg-[#080C14] border border-slate-700/80 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-medium"
+                  value={name}
+                  onChange={handleInputChange(setName)}
+                  disabled={isLoading}
+                />
+              </div>
             </div>
 
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1" htmlFor="email">
-                Institutional Email Address (.edu)
+                Email Address
               </label>
-              <input
-                id="email"
-                type="email"
-                required
-                placeholder="maya.lin@berkeley.edu"
-                className="w-full bg-[#080C14] border border-slate-700/80 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-medium"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
+              <div className="relative">
+                <input
+                  id="email"
+                  type="email"
+                  required
+                  placeholder="you@example.com"
+                  className="w-full bg-[#080C14] border border-slate-700/80 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-medium"
+                  value={email}
+                  onChange={handleInputChange(setEmail)}
+                  disabled={isLoading}
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -231,9 +290,11 @@ const SignupPage = () => {
                 <input
                   id="university"
                   type="text"
+                  placeholder="e.g. UC Berkeley, Stanford"
                   value={university}
-                  onChange={(e) => setUniversity(e.target.value)}
+                  onChange={handleInputChange(setUniversity)}
                   className="w-full bg-[#080C14] border border-slate-700/80 rounded-xl px-3 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-medium"
+                  disabled={isLoading}
                 />
               </div>
 
@@ -244,8 +305,9 @@ const SignupPage = () => {
                 <select
                   id="focusTrack"
                   value={focusTrack}
-                  onChange={(e) => setFocusTrack(e.target.value)}
+                  onChange={handleInputChange(setFocusTrack)}
                   className="w-full bg-[#080C14] border border-slate-700/80 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-cyan-500 font-medium"
+                  disabled={isLoading}
                 >
                   <option value="Distributed Systems & Cloud Infrastructure">Distributed Systems & Cloud</option>
                   <option value="AI Systems & Machine Learning Infrastructure">AI Systems & Infrastructure</option>
@@ -260,30 +322,52 @@ const SignupPage = () => {
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1" htmlFor="password">
                   Access Password
                 </label>
-                <input
-                  id="password"
-                  type="password"
-                  required
-                  placeholder="••••••••••••"
-                  className="w-full bg-[#080C14] border border-slate-700/80 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-medium"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
+                <div className="relative">
+                  <input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    placeholder="••••••••••••"
+                    className="w-full bg-[#080C14] border border-slate-700/80 rounded-xl pl-4 pr-10 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-medium"
+                    value={password}
+                    onChange={handleInputChange(setPassword)}
+                    disabled={isLoading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+                    aria-label="Toggle access visibility"
+                  >
+                    {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
               </div>
 
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1" htmlFor="confirmPassword">
                   Confirm Password
                 </label>
-                <input
-                  id="confirmPassword"
-                  type="password"
-                  required
-                  placeholder="••••••••••••"
-                  className="w-full bg-[#080C14] border border-slate-700/80 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-medium"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                />
+                <div className="relative">
+                  <input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    required
+                    placeholder="••••••••••••"
+                    className="w-full bg-[#080C14] border border-slate-700/80 rounded-xl pl-4 pr-10 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-medium"
+                    value={confirmPassword}
+                    onChange={handleInputChange(setConfirmPassword)}
+                    disabled={isLoading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+                    aria-label="Toggle confirm visibility"
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -306,8 +390,9 @@ const SignupPage = () => {
                 <input
                   type="checkbox"
                   checked={agreeTerms}
-                  onChange={(e) => setAgreeTerms(e.target.checked)}
+                  onChange={(e) => { setAgreeTerms(e.target.checked); if (error) setError(null); }}
                   className="mt-0.5 rounded bg-[#080C14] border-slate-700 text-cyan-500 focus:ring-0"
+                  disabled={isLoading}
                 />
                 <span>
                   I accept the <span className="text-cyan-400 font-medium">Academic Honesty Policy</span> and consent to personalized algorithmic diagnostic telemetry.

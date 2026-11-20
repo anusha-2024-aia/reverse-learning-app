@@ -1,15 +1,17 @@
 /* eslint-disable react-hooks/set-state-in-effect */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     RotateCcw, Sparkles, ChevronDown, ChevronUp, CheckCircle2,
     AlertTriangle, Play, Clock, ArrowRight, Loader2, Calendar,
-    Check, Layers, BookOpen, Activity, HelpCircle
+    Check, Layers, BookOpen, Activity, HelpCircle, ShieldCheck
 } from 'lucide-react';
 import api from '../api/axios';
+import { AuthContext } from '../context/AuthContext';
 
 const SmartRevision = () => {
-    const _navigate = useNavigate();
+    const navigate = useNavigate();
+    const { user } = useContext(AuthContext) || {};
     const [revisionData, setRevisionData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [showDerivation, setShowDerivation] = useState(false);
@@ -122,8 +124,10 @@ const SmartRevision = () => {
         );
     }
 
+    const isDemo = user?.email === 'maya.lin@berkeley.edu';
     const summary = revisionData?.summary || {};
-    const dueCount = (summary.due_today_count || 0) + (summary.overdue_count || 0) || 18;
+    const dueCount = isDemo ? ((summary.due_today_count || 0) + (summary.overdue_count || 0) || 18) : ((summary.due_today_count || 0) + (summary.overdue_count || 0));
+    const isNewUser = !isDemo && dueCount === 0;
 
     return (
         <div className="space-y-6 max-w-7xl mx-auto pb-12">
@@ -145,13 +149,17 @@ const SmartRevision = () => {
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => {
-                            const el = document.getElementById('active-recall-card');
-                            if (el) el.scrollIntoView({ behavior: 'smooth' });
+                            if (isNewUser) {
+                                navigate('/study');
+                            } else {
+                                const el = document.getElementById('active-recall-card');
+                                if (el) el.scrollIntoView({ behavior: 'smooth' });
+                            }
                         }}
                         className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-purple-600/30 transition-all flex items-center gap-2"
                     >
                         <Play className="w-3.5 h-3.5 fill-current" />
-                        <span>+ Start Revision</span>
+                        <span>{isNewUser ? 'Explore Topics' : '+ Start Revision'}</span>
                     </button>
                 </div>
             </div>
@@ -161,30 +169,67 @@ const SmartRevision = () => {
                 <div className="p-5 rounded-2xl bg-[#0B0F19] border border-slate-800/80 shadow-lg">
                     <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Topics Due</div>
                     <div className="text-2xl md:text-3xl font-black text-white">{dueCount}</div>
-                    <div className="text-[11px] text-cyan-400 font-semibold mt-1">Ready for recall review</div>
+                    <div className="text-[11px] text-cyan-400 font-semibold mt-1">
+                        {isNewUser ? 'All caught up' : 'Ready for recall review'}
+                    </div>
                 </div>
 
                 <div className="p-5 rounded-2xl bg-[#0B0F19] border border-slate-800/80 shadow-lg">
                     <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Today's Revision</div>
-                    <div className="text-2xl md:text-3xl font-black text-white">14 / 25</div>
-                    <div className="text-[11px] text-purple-400 font-semibold mt-1">56% of daily goal reached</div>
+                    <div className="text-2xl md:text-3xl font-black text-white">{isNewUser ? '0 / 0' : '14 / 25'}</div>
+                    <div className="text-[11px] text-purple-400 font-semibold mt-1">
+                        {isNewUser ? 'No sessions scheduled' : '56% of daily goal reached'}
+                    </div>
                 </div>
 
                 <div className="p-5 rounded-2xl bg-[#0B0F19] border border-slate-800/80 shadow-lg">
                     <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Revision Priority</div>
-                    <div className="text-2xl md:text-3xl font-black text-rose-400">High</div>
-                    <div className="text-[11px] text-rose-400 font-semibold mt-1">3 Critical concepts need review</div>
+                    <div className={`text-2xl md:text-3xl font-black ${isNewUser ? 'text-slate-400' : 'text-rose-400'}`}>
+                        {isNewUser ? 'None' : 'High'}
+                    </div>
+                    <div className={`text-[11px] font-semibold mt-1 ${isNewUser ? 'text-slate-400' : 'text-rose-400'}`}>
+                        {isNewUser ? 'Retention curve optimal' : '3 Critical concepts need review'}
+                    </div>
                 </div>
 
                 <div className="p-5 rounded-2xl bg-[#0B0F19] border border-slate-800/80 shadow-lg">
                     <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Retention Rate</div>
-                    <div className="text-2xl md:text-3xl font-black text-emerald-400">72%</div>
-                    <div className="text-[11px] text-emerald-400 font-semibold mt-1">Long-term stability</div>
+                    <div className="text-2xl md:text-3xl font-black text-emerald-400">{isNewUser ? '0%' : '72%'}</div>
+                    <div className="text-[11px] text-emerald-400 font-semibold mt-1">
+                        {isNewUser ? 'Calibrates with activity' : 'Long-term stability'}
+                    </div>
                 </div>
             </div>
 
-            {/* Main Interactive Grid: Active Recall Card (Left) & Topics Due Queue (Right) */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {isNewUser ? (
+                <div className="p-10 rounded-3xl bg-[#0B0F19] border border-slate-800/80 shadow-2xl text-center space-y-4">
+                    <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center mx-auto shadow-lg">
+                        <CheckCircle2 className="w-8 h-8 text-emerald-400" />
+                    </div>
+                    <h2 className="text-xl md:text-2xl font-black text-white">
+                        Your Active Recall Queue is Clear! 🎉
+                    </h2>
+                    <p className="text-xs md:text-sm text-slate-400 max-w-lg mx-auto leading-relaxed">
+                        You have no revision cards due at this time. As you complete topic explanations and quizzes in the Academic Hub, the SM-2 algorithm will automatically schedule review intervals to optimize your long-term memory retention.
+                    </p>
+                    <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                        <button
+                            onClick={() => navigate('/study')}
+                            className="px-6 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-lg shadow-purple-600/30 transition-all inline-flex items-center gap-2"
+                        >
+                            <span>Explore Study Topics</span>
+                            <ArrowRight className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={() => navigate('/knowledge-gaps')}
+                            className="px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 transition-all"
+                        >
+                            View Knowledge Diagnostics
+                        </button>
+                    </div>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 {/* Active Recall Card (7 Cols) */}
                 <div id="active-recall-card" className="lg:col-span-7 p-6 md:p-8 rounded-2xl bg-[#0B0F19] border border-slate-800/80 shadow-xl space-y-6 flex flex-col justify-between">
                     <div className="space-y-4">
@@ -322,6 +367,7 @@ const SmartRevision = () => {
                     </div>
                 </div>
             </div>
+            )}
         </div>
     );
 };

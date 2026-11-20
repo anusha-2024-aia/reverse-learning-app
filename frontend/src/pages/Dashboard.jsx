@@ -1,15 +1,17 @@
 /* eslint-disable react-hooks/set-state-in-effect */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { AuthContext } from '../context/AuthContext';
 import {
     Flame, AlertTriangle, ArrowRight, Play, CheckCircle2,
     Clock, Sparkles, BookOpen, Layers, Mic, RotateCcw,
-    Calendar, TrendingUp, ShieldAlert, Loader2, ChevronRight
+    Calendar, TrendingUp, ShieldAlert, Loader2, ChevronRight, Upload, Target
 } from 'lucide-react';
 
 const Dashboard = () => {
     const navigate = useNavigate();
+    const { user } = useContext(AuthContext) || {};
     const [data, setData] = useState(null);
     const [adaptiveRec, setAdaptiveRec] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -79,43 +81,159 @@ const Dashboard = () => {
 
     if (!data) return null;
 
-    // Check for empty state
-    const overallScore = data.summary?.overallScore ?? 0;
+    const isDemo = user?.email === 'maya.lin@berkeley.edu';
+    const overallScore = data.summary?.overallScore ?? (isDemo ? 84 : 0);
     const recentActivity = data.recentActivity || [];
-    if (overallScore === 0 && recentActivity.length === 0) {
+    const isNewUser = !isDemo && (overallScore === 0 && recentActivity.length === 0);
+
+    // Empty state for brand new user with 0 activity
+    if (isNewUser) {
+        const studentName = data.user?.name || user?.name || user?.username || 'Student';
         return (
-            <div className="max-w-4xl mx-auto py-16 px-4 text-center">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 to-purple-600 mx-auto flex items-center justify-center shadow-xl shadow-cyan-500/20 mb-6">
-                    <Sparkles className="w-8 h-8 text-white" />
+            <div className="space-y-8 max-w-7xl mx-auto pb-16">
+                {/* Hero Welcome Banner */}
+                <div className="p-8 md:p-10 rounded-3xl bg-gradient-to-r from-[#0F172A] via-[#111827] to-[#1E1B4B] border border-slate-800/80 shadow-2xl relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="space-y-3 z-10 max-w-2xl">
+                        <div className="flex items-center gap-2 text-[10px] uppercase font-black tracking-wider text-cyan-400">
+                            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                            STUDENT ACCOUNT READY • CLEAN PROFILE
+                        </div>
+                        <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight">
+                            Welcome to Reverse Learning 👋
+                        </h1>
+                        <p className="text-sm text-slate-300 leading-relaxed max-w-xl">
+                            Hello {studentName}, your reverse learning environment is active. Your cognitive intelligence scores, mastery trajectory, and active recall schedule will calibrate as you evaluate topics or take mock interviews.
+                        </p>
+                        <div className="flex flex-wrap items-center gap-3 pt-2">
+                            <button
+                                onClick={() => navigate('/study')}
+                                className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-xl shadow-purple-600/25 flex items-center gap-2 transition-all"
+                            >
+                                <Play className="w-3.5 h-3.5 fill-current" />
+                                <span>Start First Evaluation</span>
+                            </button>
+                            <button
+                                onClick={() => navigate('/resume')}
+                                className="px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 transition-all flex items-center gap-2"
+                            >
+                                <Upload className="w-3.5 h-3.5 text-cyan-400" />
+                                <span>Audit Resume Intelligence</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-cyan-500/20 to-purple-600/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shadow-xl shrink-0">
+                        <Sparkles className="w-10 h-10" />
+                    </div>
                 </div>
-                <h1 className="text-3xl md:text-4xl font-black text-white mb-4 tracking-tight">
-                    Welcome to Reverse Learning 👋
-                </h1>
-                <p className="text-base text-slate-300 mb-8 max-w-xl mx-auto leading-relaxed">
-                    Your real-time cognitive intelligence dashboard will populate as soon as you evaluate your first topic explanation or take a mock interview.
-                </p>
-                <div className="flex flex-wrap items-center justify-center gap-4">
-                    <button
-                        onClick={() => navigate('/study')}
-                        className="px-8 py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-sm shadow-xl shadow-purple-600/25 transition-all"
-                    >
-                        Start First Evaluation
-                    </button>
-                    <button
-                        onClick={() => navigate('/resume')}
-                        className="px-6 py-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-sm border border-slate-700 transition-all"
-                    >
-                        Audit Resume Intelligence
-                    </button>
+
+                {/* Initial 0-Metric Stat Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <div className="p-5 rounded-2xl bg-[#0B0F19] border border-slate-800/80 shadow-lg flex items-center justify-between">
+                        <div>
+                            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                                Cognitive Mastery Index
+                            </div>
+                            <div className="text-4xl font-black text-white tracking-tight mb-2">
+                                0<span className="text-2xl text-cyan-400 font-bold">%</span>
+                            </div>
+                            <div className="text-[11px] font-bold text-slate-400">
+                                Take first diagnostic to benchmark
+                            </div>
+                        </div>
+                        <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+                            <Target className="w-7 h-7" />
+                        </div>
+                    </div>
+
+                    <div className="p-5 rounded-2xl bg-[#0B0F19] border border-slate-800/80 shadow-lg flex items-center justify-between">
+                        <div>
+                            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                                Active Retention Streak
+                            </div>
+                            <div className="text-4xl font-black text-white tracking-tight mb-2 flex items-baseline gap-1.5">
+                                0 <span className="text-xl text-amber-400 font-bold">Days</span>
+                            </div>
+                            <div className="text-[11px] font-bold text-slate-400">
+                                Complete a drill to start streak
+                            </div>
+                        </div>
+                        <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                            <Flame className="w-7 h-7" />
+                        </div>
+                    </div>
+
+                    <div className="p-5 rounded-2xl bg-[#0B0F19] border border-slate-800/80 shadow-lg flex items-center justify-between">
+                        <div>
+                            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                                Target Knowledge Gaps
+                            </div>
+                            <div className="text-4xl font-black text-white tracking-tight mb-2 flex items-baseline gap-1.5">
+                                0 <span className="text-xl text-rose-400 font-bold">Priority</span>
+                            </div>
+                            <div className="text-[11px] font-bold text-slate-400">
+                                Calibrated after diagnostic
+                            </div>
+                        </div>
+                        <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
+                            <AlertTriangle className="w-7 h-7" />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Empty State Sections Layout */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-2 p-6 rounded-2xl bg-[#0B0F19] border border-slate-800/80 shadow-lg space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
+                                <Layers className="w-4 h-4 text-cyan-400" />
+                                Knowledge Progress & Core Topics
+                            </h2>
+                            <button
+                                onClick={() => navigate('/study')}
+                                className="text-xs font-bold text-cyan-400 hover:text-cyan-300 transition-colors"
+                            >
+                                Browse Topics →
+                            </button>
+                        </div>
+                        <div className="p-8 rounded-xl bg-slate-900/40 border border-slate-800/60 text-center space-y-3">
+                            <BookOpen className="w-8 h-8 text-slate-500 mx-auto" />
+                            <h3 className="text-sm font-bold text-white">No topics evaluated yet</h3>
+                            <p className="text-xs text-slate-400 max-w-md mx-auto">
+                                Select a topic from the curriculum to explain core concepts in your own words. The AI will evaluate your understanding and schedule active recall intervals.
+                            </p>
+                            <button
+                                onClick={() => navigate('/study')}
+                                className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition-all"
+                            >
+                                Explore Study Room
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="p-6 rounded-2xl bg-[#0B0F19] border border-slate-800/80 shadow-lg space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
+                                <Clock className="w-4 h-4 text-purple-400" />
+                                Recent Activity
+                            </h2>
+                        </div>
+                        <div className="p-8 rounded-xl bg-slate-900/40 border border-slate-800/60 text-center space-y-3">
+                            <Clock className="w-8 h-8 text-slate-500 mx-auto" />
+                            <h3 className="text-sm font-bold text-white">No recent activity</h3>
+                            <p className="text-xs text-slate-400">
+                                Your practice history, quiz scores, and voice studio sessions will appear here in real-time.
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </div>
         );
     }
 
-    const userName = data.user?.name || 'Maya';
-    const streakDays = data.summary?.streakDays ?? 14;
-    const knowledgeGapCount = data.summary?.knowledgeGapCount ?? (data.weakestTopics?.length || 3);
-    const primaryWeakTopic = data.weakestTopics?.[0]?.name || 'Dynamic Programming';
+    const userName = data.user?.name || user?.name || user?.username || (isDemo ? 'Maya' : 'Student');
+    const streakDays = data.summary?.streakDays ?? (data.summary?.streak ?? (isDemo ? 14 : 0));
+    const knowledgeGapCount = data.summary?.knowledgeGapCount ?? (data.weakestTopics?.length || (isDemo ? 3 : 0));
+    const primaryWeakTopic = data.weakestTopics?.[0]?.name || (isDemo ? 'Dynamic Programming' : 'Core Topics');
 
     return (
         <div className="space-y-6 max-w-7xl mx-auto">
@@ -124,7 +242,7 @@ const Dashboard = () => {
                 <div className="space-y-2 z-10 max-w-2xl">
                     <div className="flex items-center gap-2 text-[10px] uppercase font-black tracking-wider text-cyan-400">
                         <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-                        Diagnostic Active • Fall 2025 • CS162 Prep
+                        {isDemo ? 'Diagnostic Active • Fall 2025 • CS162 Prep' : 'Cognitive Telemetry Active'}
                     </div>
                     <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">
                         Welcome back, {userName}
@@ -218,7 +336,7 @@ const Dashboard = () => {
                         <span className="text-[11px] text-slate-400 font-medium">ESTIMATED 25 MIN</span>
                     </div>
                     <h3 className="text-lg font-black text-white">
-                        {adaptiveRec?.topic?.name || 'Raft Consensus & Leader Election Partition Recovery'}
+                        {adaptiveRec?.topic?.name || (isDemo ? 'Raft Consensus & Leader Election Partition Recovery' : 'Core Topic Explanation')}
                     </h3>
                     <div className="text-xs text-purple-300 font-semibold">Your Next Learning Step</div>
                     <p className="text-xs text-slate-400 max-w-2xl">
@@ -252,50 +370,71 @@ const Dashboard = () => {
                     </div>
 
                     <div className="space-y-3.5 pt-1">
-                        {/* Topic 1 */}
-                        <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/70 hover:border-slate-700 transition-all flex items-center justify-between gap-4">
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center justify-between mb-1.5">
-                                    <span className="text-xs font-bold text-white truncate">
-                                        Operating Systems & Concurrency
-                                    </span>
-                                    <span className="text-[11px] font-bold text-cyan-400">91% Mastered</span>
+                        {data.strongestTopics && data.strongestTopics.length > 0 ? (
+                            data.strongestTopics.map((top, idx) => (
+                                <div key={idx} className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/70 hover:border-slate-700 transition-all flex items-center justify-between gap-4">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between mb-1.5">
+                                            <span className="text-xs font-bold text-white truncate">
+                                                {top.name}
+                                            </span>
+                                            <span className="text-[11px] font-bold text-cyan-400">{top.score || 85}% Mastered</span>
+                                        </div>
+                                        <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                                            <div className="bg-cyan-400 h-1.5 rounded-full" style={{ width: `${top.score || 85}%` }}></div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                                    <div className="bg-cyan-400 h-1.5 rounded-full" style={{ width: '91%' }}></div>
+                            ))
+                        ) : isDemo ? (
+                            <>
+                                <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/70 hover:border-slate-700 transition-all flex items-center justify-between gap-4">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between mb-1.5">
+                                            <span className="text-xs font-bold text-white truncate">
+                                                Operating Systems & Concurrency
+                                            </span>
+                                            <span className="text-[11px] font-bold text-cyan-400">91% Mastered</span>
+                                        </div>
+                                        <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                                            <div className="bg-cyan-400 h-1.5 rounded-full" style={{ width: '91%' }}></div>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
 
-                        {/* Topic 2: Dynamic Programming */}
-                        <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/70 hover:border-slate-700 transition-all flex items-center justify-between gap-4">
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center justify-between mb-1.5">
-                                    <span className="text-xs font-bold text-white truncate">
-                                        Data Structures & {primaryWeakTopic}
-                                    </span>
-                                    <span className="text-[11px] font-bold text-purple-400">86% Proficient</span>
+                                <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/70 hover:border-slate-700 transition-all flex items-center justify-between gap-4">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between mb-1.5">
+                                            <span className="text-xs font-bold text-white truncate">
+                                                Data Structures & {primaryWeakTopic}
+                                            </span>
+                                            <span className="text-[11px] font-bold text-purple-400">86% Proficient</span>
+                                        </div>
+                                        <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                                            <div className="bg-purple-500 h-1.5 rounded-full" style={{ width: '86%' }}></div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                                    <div className="bg-purple-500 h-1.5 rounded-full" style={{ width: '86%' }}></div>
-                                </div>
-                            </div>
-                        </div>
 
-                        {/* Topic 3 */}
-                        <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/70 hover:border-slate-700 transition-all flex items-center justify-between gap-4">
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center justify-between mb-1.5">
-                                    <span className="text-xs font-bold text-white truncate">
-                                        Distributed Systems Architecture
-                                    </span>
-                                    <span className="text-[11px] font-bold text-amber-400">72% Review Needed</span>
+                                <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/70 hover:border-slate-700 transition-all flex items-center justify-between gap-4">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between mb-1.5">
+                                            <span className="text-xs font-bold text-white truncate">
+                                                Distributed Systems Architecture
+                                            </span>
+                                            <span className="text-[11px] font-bold text-amber-400">72% Review Needed</span>
+                                        </div>
+                                        <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                                            <div className="bg-amber-400 h-1.5 rounded-full" style={{ width: '72%' }}></div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                                    <div className="bg-amber-400 h-1.5 rounded-full" style={{ width: '72%' }}></div>
-                                </div>
+                            </>
+                        ) : (
+                            <div className="p-4 rounded-xl bg-slate-900/40 text-slate-400 text-xs text-center">
+                                Complete your first topic evaluation to view detailed progress breakdown.
                             </div>
-                        </div>
+                        )}
                     </div>
                 </div>
 
@@ -312,27 +451,48 @@ const Dashboard = () => {
                     </div>
 
                     <div className="space-y-3 pt-1">
-                        <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800/60">
-                            <div className="flex items-center justify-between text-xs mb-1">
-                                <span className="font-bold text-white">Completed Quiz #4 Drill</span>
-                                <span className="text-[10px] text-slate-400">14m ago</span>
-                            </div>
-                            <p className="text-[11px] text-slate-400 mb-2">Scored 88% on Raft Consensus Invariants.</p>
-                            <button onClick={() => navigate('/evaluations')} className="text-[10px] font-bold text-cyan-400 hover:underline">
-                                Quick Review →
-                            </button>
-                        </div>
+                        {recentActivity.length > 0 ? (
+                            recentActivity.map((act, idx) => (
+                                <div key={idx} className="p-3 rounded-xl bg-slate-900/60 border border-slate-800/60">
+                                    <div className="flex items-center justify-between text-xs mb-1">
+                                        <span className="font-bold text-white">{act.title || act.topic_name || "Completed Drill"}</span>
+                                        <span className="text-[10px] text-slate-400">{act.date || act.created_at || "Recent"}</span>
+                                    </div>
+                                    <p className="text-[11px] text-slate-400 mb-2">Score: {act.score ?? 85}%.</p>
+                                    <button onClick={() => navigate(act.type === 'interview' ? '/interview' : '/study')} className="text-[10px] font-bold text-cyan-400 hover:underline">
+                                        Review Details →
+                                    </button>
+                                </div>
+                            ))
+                        ) : isDemo ? (
+                            <>
+                                <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800/60">
+                                    <div className="flex items-center justify-between text-xs mb-1">
+                                        <span className="font-bold text-white">Completed Quiz #4 Drill</span>
+                                        <span className="text-[10px] text-slate-400">14m ago</span>
+                                    </div>
+                                    <p className="text-[11px] text-slate-400 mb-2">Scored 88% on Raft Consensus Invariants.</p>
+                                    <button onClick={() => navigate('/evaluations')} className="text-[10px] font-bold text-cyan-400 hover:underline">
+                                        Quick Review →
+                                    </button>
+                                </div>
 
-                        <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800/60">
-                            <div className="flex items-center justify-between text-xs mb-1">
-                                <span className="font-bold text-white">Voice Studio Practice</span>
-                                <span className="text-[10px] text-slate-400">2h ago</span>
+                                <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800/60">
+                                    <div className="flex items-center justify-between text-xs mb-1">
+                                        <span className="font-bold text-white">Voice Studio Practice</span>
+                                        <span className="text-[10px] text-slate-400">2h ago</span>
+                                    </div>
+                                    <p className="text-[11px] text-slate-400 mb-2">Completed 20-min concurrency screening. Clarity: 94%.</p>
+                                    <button onClick={() => navigate('/interview')} className="text-[10px] font-bold text-purple-400 hover:underline">
+                                        View Feedback →
+                                    </button>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="p-4 rounded-xl bg-slate-900/40 text-slate-400 text-xs text-center">
+                                No recent activity yet.
                             </div>
-                            <p className="text-[11px] text-slate-400 mb-2">Completed 20-min concurrency screening. Clarity: 94%.</p>
-                            <button onClick={() => navigate('/interview')} className="text-[10px] font-bold text-purple-400 hover:underline">
-                                View Feedback →
-                            </button>
-                        </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -346,35 +506,43 @@ const Dashboard = () => {
                             <RotateCcw className="w-4 h-4 text-cyan-400" />
                             Upcoming Revisions & Drills
                         </h2>
-                        <span className="text-xs text-slate-400 font-medium">3 scheduled this week</span>
+                        <span className="text-xs text-slate-400 font-medium">{isDemo ? '3 scheduled this week' : 'Active queue'}</span>
                     </div>
 
                     <div className="space-y-2.5">
-                        <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900/60 border border-slate-800/60">
-                            <div>
-                                <div className="text-xs font-bold text-white">Raft Log Compaction & Snapshots</div>
-                                <div className="text-[11px] text-slate-400">Target: Distributed Midterm Prep</div>
-                            </div>
-                            <button
-                                onClick={() => navigate('/revision')}
-                                className="px-3.5 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-[11px] font-bold transition-all"
-                            >
-                                Start
-                            </button>
-                        </div>
+                        {isDemo ? (
+                            <>
+                                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900/60 border border-slate-800/60">
+                                    <div>
+                                        <div className="text-xs font-bold text-white">Raft Log Compaction & Snapshots</div>
+                                        <div className="text-[11px] text-slate-400">Target: Distributed Midterm Prep</div>
+                                    </div>
+                                    <button
+                                        onClick={() => navigate('/revision')}
+                                        className="px-3.5 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-[11px] font-bold transition-all"
+                                    >
+                                        Start
+                                    </button>
+                                </div>
 
-                        <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900/60 border border-slate-800/60">
-                            <div>
-                                <div className="text-xs font-bold text-white">Red-Black Tree Uncle Node Recoloring</div>
-                                <div className="text-[11px] text-slate-400">Target: Coding Assessment</div>
+                                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900/60 border border-slate-800/60">
+                                    <div>
+                                        <div className="text-xs font-bold text-white">Red-Black Tree Uncle Node Recoloring</div>
+                                        <div className="text-[11px] text-slate-400">Target: Coding Assessment</div>
+                                    </div>
+                                    <button
+                                        onClick={() => navigate('/revision')}
+                                        className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-bold transition-all"
+                                    >
+                                        Review
+                                    </button>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="p-4 rounded-xl bg-slate-900/40 text-slate-400 text-xs text-center">
+                                All revision cards up to date. Complete new topics to expand your recall queue.
                             </div>
-                            <button
-                                onClick={() => navigate('/revision')}
-                                className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-bold transition-all"
-                            >
-                                Review
-                            </button>
-                        </div>
+                        )}
                     </div>
                 </div>
 
@@ -385,13 +553,13 @@ const Dashboard = () => {
                             <span className="text-[10px] font-black uppercase tracking-wider text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">
                                 Next Assessment
                             </span>
-                            <span className="text-xs text-slate-400 font-medium">Tomorrow • 4 PM</span>
+                            <span className="text-xs text-slate-400 font-medium">{isDemo ? 'Tomorrow • 4 PM' : 'Self-Paced'}</span>
                         </div>
                         <h3 className="text-base font-black text-white mb-1.5">
-                            Google SWE Technical Screening Mock
+                            {isDemo ? 'Google SWE Technical Screening Mock' : 'AI Adaptive Mock Interview'}
                         </h3>
                         <p className="text-xs text-slate-400">
-                            Simulated 45-min voice & architecture round evaluated with AI Staff Engineer persona.
+                            {isDemo ? 'Simulated 45-min voice & architecture round evaluated with AI Staff Engineer persona.' : 'Simulated voice and technical interview evaluated across system design depth and communication pacing.'}
                         </p>
                     </div>
                     <div className="pt-4 flex items-center justify-between">
@@ -400,7 +568,7 @@ const Dashboard = () => {
                             className="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md shadow-purple-600/30 flex items-center justify-center gap-2 transition-all"
                         >
                             <Mic className="w-3.5 h-3.5" />
-                            <span>Check Audio & Setup</span>
+                            <span>{isDemo ? 'Check Audio & Setup' : 'Start Mock Interview'}</span>
                         </button>
                     </div>
                 </div>

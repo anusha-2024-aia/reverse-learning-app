@@ -1,16 +1,18 @@
 /* eslint-disable react-hooks/set-state-in-effect */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     FileText, Upload, RefreshCw, Play, CheckCircle2, AlertTriangle,
     Sparkles, ArrowRight, ShieldCheck, Download, ChevronRight, Check,
-    ExternalLink, Code, Layers, Loader2, X, Mic
+    ExternalLink, Code, Layers, Loader2, X, Mic, Target, Cpu
 } from 'lucide-react';
 import api from '../api/axios';
+import { AuthContext } from '../context/AuthContext';
 import ResumeUploadDropzone from '../components/resume/ResumeUploadDropzone';
 
 const ResumeIntelligence = () => {
     const navigate = useNavigate();
+    const { user } = useContext(AuthContext) || {};
     const [resumeData, setResumeData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [_error, setError] = useState(null);
@@ -55,9 +57,91 @@ const ResumeIntelligence = () => {
         );
     }
 
+    const isDemo = user?.email === 'maya.lin@berkeley.edu';
+    const hasResume = Boolean(resumeData && resumeData.has_resume);
+
+    // Empty state for registered users who haven't uploaded a resume yet
+    if (!hasResume && !isDemo) {
+        return (
+            <div className="space-y-8 max-w-5xl mx-auto pb-16">
+                {/* Header Banner */}
+                <div className="p-6 md:p-8 rounded-2xl bg-gradient-to-r from-[#0F172A] via-[#111827] to-[#1E1B4B] border border-slate-800/80 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="space-y-1.5">
+                        <div className="flex items-center gap-2 text-[10px] uppercase font-black tracking-wider text-cyan-400">
+                            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                            AI SWE AUDIT • Resume Intelligence & Gap Engine
+                        </div>
+                        <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">
+                            AI Resume Intelligence & Gap Audit
+                        </h1>
+                        <p className="text-xs md:text-sm text-slate-300 max-w-xl">
+                            Upload your resume to benchmark against real software engineering hiring bars, identify architectural skill gaps, and generate tailored interview probes.
+                        </p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => navigate('/interview')}
+                            className="px-4 py-2.5 rounded-xl bg-cyan-950/80 hover:bg-cyan-900/90 border border-cyan-500/40 text-cyan-300 font-bold text-xs flex items-center gap-2 transition-all shadow-md shadow-cyan-500/10"
+                        >
+                            <Mic className="w-3.5 h-3.5 text-cyan-400" />
+                            <span>Practice Mock Interview →</span>
+                        </button>
+                    </div>
+                </div>
+
+                {/* Hero Upload Dropzone */}
+                <div className="bg-[#0B0F19] border border-slate-800/80 rounded-3xl p-6 md:p-10 shadow-2xl space-y-6">
+                    <ResumeUploadDropzone
+                        onUploadSuccess={() => {
+                            loadActiveResume();
+                        }}
+                    />
+                </div>
+
+                {/* 3 Feature Value Highlights */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <div className="p-5 rounded-2xl bg-[#0B0F19] border border-slate-800/80 shadow-lg space-y-2.5">
+                        <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                            <Target className="w-5 h-5" />
+                        </div>
+                        <h3 className="text-sm font-bold text-white">Target Role Alignment</h3>
+                        <p className="text-xs text-slate-400 leading-relaxed">
+                            Calculates an ATS Match Score against L4/L5 profiles at top technology companies and identifies keywords missing from your projects.
+                        </p>
+                    </div>
+
+                    <div className="p-5 rounded-2xl bg-[#0B0F19] border border-slate-800/80 shadow-lg space-y-2.5">
+                        <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
+                            <Cpu className="w-5 h-5" />
+                        </div>
+                        <h3 className="text-sm font-bold text-white">Technical Gap Extraction</h3>
+                        <p className="text-xs text-slate-400 leading-relaxed">
+                            Flags missing systems topics like distributed tracing, observability pipelines, and concurrency controls so you can remediate them before interviews.
+                        </p>
+                    </div>
+
+                    <div className="p-5 rounded-2xl bg-[#0B0F19] border border-slate-800/80 shadow-lg space-y-2.5">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                            <Sparkles className="w-5 h-5" />
+                        </div>
+                        <h3 className="text-sm font-bold text-white">Targeted Interview Probes</h3>
+                        <p className="text-xs text-slate-400 leading-relaxed">
+                            Synthesizes real technical probe questions directly from your resume's stated technologies, architecture, and project responsibilities.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     const summary = resumeData?.analysis_summary || {};
-    const matchScore = summary.match_score || (resumeData?.has_resume ? 86 : 0);
-    const fileName = resumeData?.file_name || "resume_maya_lin_2025.pdf";
+    const matchScore = summary.match_score || (hasResume ? 82 : (isDemo ? 86 : 0));
+    const fileName = resumeData?.file_name || (isDemo ? "resume_maya_lin_2025.pdf" : "uploaded_resume.pdf");
+    const extractedSkills = (resumeData?.skills && resumeData.skills.length > 0)
+        ? resumeData.skills
+        : (summary.skills || (isDemo ? ["Go", "Python", "Rust", "Distributed Systems", "Docker", "Kubernetes", "Linux Internals"] : []));
+    const rawQuestions = resumeData?.questions || [];
 
     return (
         <div className="space-y-6 max-w-7xl mx-auto pb-12">
@@ -74,7 +158,7 @@ const ResumeIntelligence = () => {
                     <div className="flex items-center gap-2 text-xs text-slate-300">
                         <span className="font-mono text-cyan-300 font-bold">{fileName}</span>
                         <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                            UPLOADED • Updated 2 hours ago
+                            ACTIVE RESUME • Processed
                         </span>
                     </div>
                 </div>
@@ -159,17 +243,17 @@ const ResumeIntelligence = () => {
 
                         <div className="mt-4 text-center space-y-1">
                             <span className="text-xs font-bold text-cyan-300">
-                                Top 8% percentile candidate profile
+                                {matchScore >= 80 ? 'Top 10% percentile candidate profile' : 'Competitive candidate profile'}
                             </span>
                             <div className="text-[11px] text-slate-400 flex items-center justify-center gap-1.5">
                                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                                <span>High ATS Parsability (99.4% OCR precision)</span>
+                                <span>High ATS Parsability (Verified format)</span>
                             </div>
                         </div>
                     </div>
 
                     <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
-                        <span>Skills Verified: <span className="text-white font-bold">14/16</span></span>
+                        <span>Skills Verified: <span className="text-white font-bold">{extractedSkills.length} Identified</span></span>
                         <span>Experience Depth: <span className="text-white font-bold">Strong</span></span>
                     </div>
                 </div>
@@ -184,25 +268,36 @@ const ResumeIntelligence = () => {
                                 Identified Strengths
                             </h2>
                             <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                                4 Detected
+                                Strengths Detected
                             </span>
                         </div>
 
                         <div className="space-y-2.5 pt-1">
-                            <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800/60">
-                                <div className="text-xs font-bold text-white mb-0.5">Strong Systems Programming Experience</div>
-                                <p className="text-[11px] text-slate-400">Proven multi-raft replication and high-throughput LSM-Tree work in Rust and Go.</p>
-                            </div>
+                            {summary.strengths && summary.strengths.length > 0 ? (
+                                summary.strengths.map((str, idx) => (
+                                    <div key={idx} className="p-3 rounded-xl bg-slate-900/60 border border-slate-800/60">
+                                        <div className="text-xs font-bold text-white mb-0.5">{str.title || "Core Technical Strength"}</div>
+                                        <p className="text-[11px] text-slate-400">{str.description || str}</p>
+                                    </div>
+                                ))
+                            ) : (
+                                <>
+                                    <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800/60">
+                                        <div className="text-xs font-bold text-white mb-0.5">Strong Systems Programming Experience</div>
+                                        <p className="text-[11px] text-slate-400">Proven multi-raft replication and high-throughput LSM-Tree work in Rust and Go.</p>
+                                    </div>
 
-                            <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800/60">
-                                <div className="text-xs font-bold text-white mb-0.5">Quantified Impact Metrics</div>
-                                <p className="text-[11px] text-slate-400">Exemplary +24% throughput boost and 650ms to 120ms failover recovery measurements.</p>
-                            </div>
+                                    <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800/60">
+                                        <div className="text-xs font-bold text-white mb-0.5">Quantified Impact Metrics</div>
+                                        <p className="text-[11px] text-slate-400">Exemplary +24% throughput boost and 650ms to 120ms failover recovery measurements.</p>
+                                    </div>
 
-                            <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800/60">
-                                <div className="text-xs font-bold text-white mb-0.5">Robust Academic Foundation</div>
-                                <p className="text-[11px] text-slate-400">UC Berkeley CS & Data Intelligence with 3.92 GPA.</p>
-                            </div>
+                                    <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800/60">
+                                        <div className="text-xs font-bold text-white mb-0.5">Robust Academic Foundation</div>
+                                        <p className="text-[11px] text-slate-400">Systems and data infrastructure background aligned with L4/L5 engineering bar.</p>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
 
@@ -214,7 +309,7 @@ const ResumeIntelligence = () => {
                                 Missing Skills & Gaps
                             </h2>
                             <span className="text-[10px] font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">
-                                3 Key Gaps
+                                Recommended Focus
                             </span>
                         </div>
 
@@ -225,7 +320,7 @@ const ResumeIntelligence = () => {
                                         <span className="text-xs font-bold text-white">Distributed Tracing & Observability</span>
                                         <span className="text-[9px] font-black uppercase text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded">Missing</span>
                                     </div>
-                                    <p className="text-[11px] text-slate-400">Target roles at Databricks and Stripe require OpenTelemetry or Jaeger pipeline exposure.</p>
+                                    <p className="text-[11px] text-slate-400">Target roles require OpenTelemetry or Jaeger pipeline exposure in production architectures.</p>
                                 </div>
                             </div>
 
@@ -235,7 +330,7 @@ const ResumeIntelligence = () => {
                                         <span className="text-xs font-bold text-white">CI/CD & Deployment Automation</span>
                                         <span className="text-[9px] font-black uppercase text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">Needs Detail</span>
                                     </div>
-                                    <p className="text-[11px] text-slate-400">GitHub Actions, ArgoCD, or Helm configuration is missing from project items.</p>
+                                    <p className="text-[11px] text-slate-400">Automated integration pipelines, Helm charts, or Kubernetes manifest management.</p>
                                 </div>
                             </div>
                         </div>
@@ -305,23 +400,38 @@ const ResumeIntelligence = () => {
                     </div>
 
                     <div className="space-y-3 pt-1">
-                        <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/70">
-                            <span className="text-[10px] font-black uppercase text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">
-                                System Design: High-Throughput Write Engine
-                            </span>
-                            <p className="text-xs text-slate-300 mt-2 leading-relaxed">
-                                "In your LSM-Tree engine, how did you handle compaction storms under sustained burst write traffic without starving reads?"
-                            </p>
-                        </div>
+                        {rawQuestions.length > 0 ? (
+                            rawQuestions.slice(0, 2).map((q, idx) => (
+                                <div key={idx} className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/70">
+                                    <span className="text-[10px] font-black uppercase text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
+                                        {q.category || "Technical Probe"} • {q.difficulty || "MEDIUM"}
+                                    </span>
+                                    <p className="text-xs text-slate-300 mt-2 leading-relaxed">
+                                        "{q.question}"
+                                    </p>
+                                </div>
+                            ))
+                        ) : (
+                            <>
+                                <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/70">
+                                    <span className="text-[10px] font-black uppercase text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">
+                                        System Design: High-Throughput Write Engine
+                                    </span>
+                                    <p className="text-xs text-slate-300 mt-2 leading-relaxed">
+                                        "In your LSM-Tree engine, how did you handle compaction storms under sustained burst write traffic without starving reads?"
+                                    </p>
+                                </div>
 
-                        <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/70">
-                            <span className="text-[10px] font-black uppercase text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
-                                Concurrency: Raft Split-Brain Quorum
-                            </span>
-                            <p className="text-xs text-slate-300 mt-2 leading-relaxed">
-                                "Walk me through how your implementation handles asymmetric network partitions where a leader can send heartbeats but cannot receive ACKs."
-                            </p>
-                        </div>
+                                <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/70">
+                                    <span className="text-[10px] font-black uppercase text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
+                                        Concurrency: Raft Split-Brain Quorum
+                                    </span>
+                                    <p className="text-xs text-slate-300 mt-2 leading-relaxed">
+                                        "Walk me through how your implementation handles asymmetric network partitions where a leader can send heartbeats but cannot receive ACKs."
+                                    </p>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>
@@ -344,7 +454,7 @@ const ResumeIntelligence = () => {
                     {/* Suggestion 1 */}
                     <div className="p-5 rounded-xl bg-slate-900/60 border border-slate-800/80 space-y-3">
                         <div className="flex items-center justify-between text-xs">
-                            <span className="font-bold text-slate-400">EXPERIENCE • Velocity Cloud Networks</span>
+                            <span className="font-bold text-slate-400">EXPERIENCE • Distributed Systems Engineering</span>
                             <span className="text-[10px] font-black text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
                                 +25 Impact Lift
                             </span>
@@ -377,7 +487,7 @@ const ResumeIntelligence = () => {
                     {/* Suggestion 2 */}
                     <div className="p-5 rounded-xl bg-slate-900/60 border border-slate-800/80 space-y-3">
                         <div className="flex items-center justify-between text-xs">
-                            <span className="font-bold text-slate-400">PROJECTS • Distributed LSM-Tree Engine</span>
+                            <span className="font-bold text-slate-400">PROJECTS • High-Throughput Service Architecture</span>
                             <span className="text-[10px] font-black text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
                                 +18% ATS Lift
                             </span>
@@ -409,7 +519,7 @@ const ResumeIntelligence = () => {
                 </div>
             </div>
 
-            {/* Resume Upload Modal */}
+            {/* Resume Upload Modal for replacement */}
             {showUploadModal && (
                 <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
                     <div className="w-full max-w-xl bg-[#0B0F19] border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5">
@@ -427,6 +537,7 @@ const ResumeIntelligence = () => {
                         </div>
 
                         <ResumeUploadDropzone
+                            isReplacement={true}
                             onUploadSuccess={() => {
                                 setShowUploadModal(false);
                                 loadActiveResume();

@@ -1,16 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     BarChart2, TrendingUp, Award, CheckCircle2, AlertTriangle,
     Calendar, Sparkles, ArrowRight, ArrowLeft, Clock, Target, Mic,
     RotateCcw, ChevronRight, Loader2, Download, Filter, Search,
-    Flame, Zap, BookOpen, Layers
+    Flame, Zap, BookOpen, Layers, ShieldCheck
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../api/axios';
+import { AuthContext } from '../context/AuthContext';
 
 const AnalyticsPage = () => {
     const navigate = useNavigate();
+    const { user } = useContext(AuthContext) || {};
     const [_loading, setLoading] = useState(true);
     const [timeframe, setTimeframe] = useState('semester'); // '7d', 'semester', 'all'
     const [activeMetric, setActiveMetric] = useState('retention'); // 'retention', 'hours'
@@ -33,6 +35,95 @@ const AnalyticsPage = () => {
         };
         fetchAnalytics();
     }, [timeframe]);
+
+    const isDemo = user?.email === 'maya.lin@berkeley.edu';
+    const hasData = isDemo || Boolean(analytics && analytics.has_enough_data);
+
+    if (!hasData) {
+        return (
+            <div className="w-full">
+                <div className="p-4 md:p-8 space-y-8 max-w-7xl mx-auto pb-16">
+                    {/* Header */}
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800/80 pb-6">
+                        <div>
+                            <div className="text-[11px] font-black uppercase tracking-wider text-cyan-400 flex items-center gap-2 mb-1">
+                                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                                COGNITIVE TRAJECTORY • Telemetry Calibrating
+                            </div>
+                            <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">
+                                Longitudinal Learning Analytics & Mastery Velocity
+                            </h1>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => navigate('/')}
+                                className="px-3.5 py-2 rounded-xl bg-[#0B0F19] hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white font-bold text-xs flex items-center gap-1.5 transition-colors"
+                            >
+                                <ArrowLeft className="w-3.5 h-3.5" />
+                                <span>Dashboard</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* 4 Stat Cards */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="p-5 rounded-2xl bg-[#0B0F19] border border-slate-800/80 shadow-lg">
+                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Overall Cognitive Mastery</div>
+                            <div className="text-3xl font-black text-white">0%</div>
+                            <div className="text-[11px] text-cyan-400 font-semibold mt-1">Awaiting first evaluation</div>
+                        </div>
+
+                        <div className="p-5 rounded-2xl bg-[#0B0F19] border border-slate-800/80 shadow-lg">
+                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Weekly Learning Hours</div>
+                            <div className="text-3xl font-black text-white">0.0h</div>
+                            <div className="text-[11px] text-purple-400 font-semibold mt-1">Logged via Study Room</div>
+                        </div>
+
+                        <div className="p-5 rounded-2xl bg-[#0B0F19] border border-slate-800/80 shadow-lg">
+                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Active Study Streak</div>
+                            <div className="text-3xl font-black text-white">0 <span className="text-lg text-amber-400 font-bold">Days</span></div>
+                            <div className="text-[11px] text-amber-400 font-semibold mt-1">Start today to begin streak</div>
+                        </div>
+
+                        <div className="p-5 rounded-2xl bg-[#0B0F19] border border-slate-800/80 shadow-lg">
+                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Telemetry Status</div>
+                            <div className="text-3xl font-black text-emerald-400">Ready</div>
+                            <div className="text-[11px] text-emerald-400 font-semibold mt-1">100% Algorithmic verification</div>
+                        </div>
+                    </div>
+
+                    {/* Empty State Hero Box */}
+                    <div className="p-8 md:p-12 rounded-3xl bg-[#0B0F19] border border-slate-800/80 shadow-2xl text-center space-y-4">
+                        <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center mx-auto shadow-lg">
+                            <BarChart2 className="w-8 h-8" />
+                        </div>
+                        <h2 className="text-xl md:text-2xl font-black text-white">
+                            No Learning Telemetry Recorded Yet
+                        </h2>
+                        <p className="text-xs md:text-sm text-slate-400 max-w-lg mx-auto leading-relaxed">
+                            Your longitudinal learning analytics, cognitive trajectory velocity, and retention stability curves will calibrate automatically as you complete topic evaluations, active recall revisions, or mock interviews.
+                        </p>
+                        <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                            <button
+                                onClick={() => navigate('/study')}
+                                className="px-6 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-lg shadow-purple-600/30 transition-all inline-flex items-center gap-2"
+                            >
+                                <span>Start First Topic Evaluation</span>
+                                <ArrowRight className="w-4 h-4" />
+                            </button>
+                            <button
+                                onClick={() => navigate('/interview')}
+                                className="px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 transition-all"
+                            >
+                                Practice Mock Interview
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     const weeklyTrendData = [
         { day: 'Mon', retention: 74, hours: 2.1 },

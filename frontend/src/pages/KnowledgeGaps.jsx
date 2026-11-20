@@ -1,14 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     AlertTriangle, CheckCircle2, TrendingUp, TrendingDown,
     ArrowRight, Loader2, Sparkles, Filter, ShieldAlert,
-    Activity, Play, BookOpen, Layers, RefreshCw, BarChart2
+    Activity, Play, BookOpen, Layers, RefreshCw, BarChart2, Target
 } from 'lucide-react';
 import api from '../api/axios';
+import { AuthContext } from '../context/AuthContext';
 
 const KnowledgeGaps = () => {
     const navigate = useNavigate();
+    const { user } = useContext(AuthContext) || {};
     const [gaps, setGaps] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('ALL');
@@ -25,6 +27,9 @@ const KnowledgeGaps = () => {
             });
     }, []);
 
+    const isDemo = user?.email === 'maya.lin@berkeley.edu';
+    const isNewUser = !isDemo && gaps.length === 0;
+
     const filteredGaps = filter === 'ALL'
         ? gaps
         : gaps.filter(g => g.severity?.toUpperCase() === filter);
@@ -39,6 +44,93 @@ const KnowledgeGaps = () => {
                     <p className="text-slate-400 text-xs font-medium animate-pulse tracking-wide">
                         Calculating cognitive gap diagnostics...
                     </p>
+                </div>
+            </div>
+        );
+    }
+
+    if (isNewUser) {
+        return (
+            <div className="space-y-8 max-w-5xl mx-auto pb-16">
+                {/* Header Banner */}
+                <div className="p-6 md:p-8 rounded-2xl bg-gradient-to-r from-[#0F172A] via-[#111827] to-[#1E1B4B] border border-slate-800/80 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="space-y-1.5">
+                        <div className="flex items-center gap-2 text-[10px] uppercase font-black tracking-wider text-cyan-400">
+                            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                            DIAGNOSTIC & GAP ANALYSIS • Telemetry Standby
+                        </div>
+                        <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">
+                            Knowledge Diagnostic & Readiness
+                        </h1>
+                        <p className="text-xs md:text-sm text-slate-300 max-w-xl">
+                            Continuous algorithmic detection of technical concept blindspots and cognitive weaknesses across systems and engineering curricula.
+                        </p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => navigate('/study')}
+                            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-purple-600/30 transition-all flex items-center gap-2"
+                        >
+                            <Play className="w-3.5 h-3.5 fill-current" />
+                            <span>Start First Diagnostic →</span>
+                        </button>
+                    </div>
+                </div>
+
+                {/* Empty State Hero Box */}
+                <div className="p-8 md:p-12 rounded-3xl bg-[#0B0F19] border border-slate-800/80 shadow-2xl text-center space-y-4">
+                    <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center mx-auto shadow-lg">
+                        <ShieldAlert className="w-8 h-8" />
+                    </div>
+                    <h2 className="text-xl md:text-2xl font-black text-white">
+                        No Knowledge Gaps Detected Yet
+                    </h2>
+                    <p className="text-xs md:text-sm text-slate-400 max-w-lg mx-auto leading-relaxed">
+                        You have not completed any topic explanations or diagnostic evaluations yet. As you answer active recall drills, our diagnostic engine will detect misconception patterns and prioritize concepts that need remediation.
+                    </p>
+                    <div className="pt-2">
+                        <button
+                            onClick={() => navigate('/study')}
+                            className="px-6 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-lg shadow-purple-600/30 transition-all inline-flex items-center gap-2"
+                        >
+                            <span>Explore Topics & Start Diagnostic</span>
+                            <ArrowRight className="w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
+
+                {/* Informational Guidance Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <div className="p-5 rounded-2xl bg-[#0B0F19] border border-slate-800/80 shadow-lg space-y-2">
+                        <div className="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 mb-1">
+                            <Target className="w-4 h-4" />
+                        </div>
+                        <h3 className="text-xs font-bold text-white uppercase tracking-wider">Concept Graph Mapping</h3>
+                        <p className="text-xs text-slate-400 leading-relaxed">
+                            Maps topic prerequisite chains to ensure foundational understanding before advancing to higher complexity tiers.
+                        </p>
+                    </div>
+
+                    <div className="p-5 rounded-2xl bg-[#0B0F19] border border-slate-800/80 shadow-lg space-y-2">
+                        <div className="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-1">
+                            <Activity className="w-4 h-4" />
+                        </div>
+                        <h3 className="text-xs font-bold text-white uppercase tracking-wider">Dynamic Severity Ratings</h3>
+                        <p className="text-xs text-slate-400 leading-relaxed">
+                            Flags declining topic trends as Critical, High, or Moderate priority based on score consistency and elapsed decay intervals.
+                        </p>
+                    </div>
+
+                    <div className="p-5 rounded-2xl bg-[#0B0F19] border border-slate-800/80 shadow-lg space-y-2">
+                        <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-1">
+                            <CheckCircle2 className="w-4 h-4" />
+                        </div>
+                        <h3 className="text-xs font-bold text-white uppercase tracking-wider">Targeted Remediations</h3>
+                        <p className="text-xs text-slate-400 leading-relaxed">
+                            Generates targeted 10-15 minute focused active recall drills directly addressing your diagnosed gaps.
+                        </p>
+                    </div>
                 </div>
             </div>
         );
